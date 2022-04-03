@@ -1,0 +1,2 @@
+C:\Users\mckre\Documents\GitHub\HauntedHouse\HauntedHouse\Intermediate\Build\Win64\UE4Editor\Development\HauntedHouse\Definitions.HauntedHouse.h
+C:\Users\mckre\Documents\GitHub\HauntedHouse\HauntedHouse\Source\HauntedHouse\HauntedHouse.h

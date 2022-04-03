@@ -1,0 +1,9 @@
+C:\Users\mckre\Documents\GitHub\HauntedHouse\HauntedHouse\Intermediate\Build\Win64\UE4Editor\Development\HauntedHouse\Definitions.HauntedHouse.h
+D:\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
+D:\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
+C:\Users\mckre\Documents\GitHub\HauntedHouse\HauntedHouse\Source\HauntedHouse/HauntedHouseGameMode.h
+D:\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/GameModeBase.h
+D:\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/ServerStatReplicator.h
+D:\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\ServerStatReplicator.generated.h
+D:\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameModeBase.generated.h
+C:\Users\mckre\Documents\GitHub\HauntedHouse\HauntedHouse\Intermediate\Build\Win64\UE4Editor\Inc\HauntedHouse\HauntedHouseGameMode.generated.h

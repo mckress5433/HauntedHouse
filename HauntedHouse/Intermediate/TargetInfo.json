@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "HauntedHouse",
+			"Path": "C:\\Users\\mckre\\Documents\\GitHub\\HauntedHouse\\HauntedHouse\\Source\\HauntedHouse.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "HauntedHouseEditor",
+			"Path": "C:\\Users\\mckre\\Documents\\GitHub\\HauntedHouse\\HauntedHouse\\Source\\HauntedHouseEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}
