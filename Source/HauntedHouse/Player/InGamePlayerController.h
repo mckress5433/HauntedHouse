@@ -60,9 +60,7 @@ protected:
 	// Event triggered when the interaction input is pressed/released
 	void StartInteraction();
 	void EndInteraction();
-	// Event to display pause menu
-	void ToggleOptionsMenu();
-
+	
 	void OnUIInteraction();
 
 	UFUNCTION(BlueprintCallable)
@@ -71,6 +69,11 @@ protected:
 	void SetGameInputMode();
 	
 public:
+
+	// Event to display pause menu
+	UFUNCTION(BlueprintCallable)
+	void ToggleOptionsMenu();
+	
 	virtual void SetupInputComponent() override;
 
 	UFUNCTION(BlueprintPure)

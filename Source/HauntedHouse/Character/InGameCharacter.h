@@ -30,7 +30,7 @@ class HAUNTEDHOUSE_API AInGameCharacter : public ABaseCharacter, public IAbility
 	static FAutoConsoleVariableRef CVarDrawDebug;
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* CameraComp;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UWidgetInteractionComponent* WidgetInteractionComp;
@@ -121,6 +121,5 @@ public:
 	// function to cancel the ongoing interpolation and reset the camera
 	UFUNCTION(BlueprintCallable)
 	void CancelCameraInterpolation();
-
 	void ToggleWidgetInteractionActivation(bool bIsActive);
 };

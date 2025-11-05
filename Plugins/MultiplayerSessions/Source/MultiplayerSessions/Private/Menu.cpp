@@ -124,7 +124,12 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 
 void UMenu::OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionsFound, bool bWasSuccessful)
 {
-	if(MultiplayerSessionsSubsystem == nullptr) return;
+	if(MultiplayerSessionsSubsystem == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot join match because MultiplayerSessionsSubsystem is nullptr"));
+		JoinButton->SetIsEnabled(true);
+		return;
+	}
 	
 	for(FOnlineSessionSearchResult result : SessionsFound)
 	{
@@ -152,13 +157,19 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 		if(SessionInterface.IsValid())
 		{
 			FString Address;
-			SessionInterface->GetResolvedConnectString(NAME_GameSession, Address);
-			
-			APlayerController* playerController = GetGameInstance()->GetFirstLocalPlayerController();
-			if(playerController != nullptr)
+			if (SessionInterface->GetResolvedConnectString(NAME_GameSession, Address))
 			{
-				UE_LOG(LogTemp, Log, TEXT("Traveling to address"));
-				playerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+				APlayerController* playerController = GetGameInstance()->GetFirstLocalPlayerController();
+				if(playerController != nullptr)
+				{
+					UE_LOG(LogTemp, Log, TEXT("Traveling to address: %s"), *Address);
+					playerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Failed to get ResolvedConnectString!"));
+				MultiplayerSessionsSubsystem->DestroySession();
 			}
 		}
 	}
@@ -195,6 +206,7 @@ void UMenu::HostButtonClicked()
 
 void UMenu::JoinButtonClicked()
 {
+	UE_LOG(LogTemp, Log, TEXT("JoinButtonClicked!"));
 	JoinButton->SetIsEnabled(false);
 	if(MultiplayerSessionsSubsystem != nullptr)
 	{

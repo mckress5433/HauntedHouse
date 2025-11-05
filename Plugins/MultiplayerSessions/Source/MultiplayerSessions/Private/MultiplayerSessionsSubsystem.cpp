@@ -4,6 +4,8 @@
 #include "MultiplayerSessionsSubsystem.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
+#include "TransformNoScale.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "Online/OnlineSessionNames.h"
 
 DEFINE_LOG_CATEGORY(LogSessionsSubsystem)
@@ -45,23 +47,38 @@ void UMultiplayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FS
 	CreateSessionCompleteDelegateHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
 
 	LastSessionSettings = MakeShareable(new FOnlineSessionSettings);
-	LastSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	LastSessionSettings->bIsLANMatch = false;
 	LastSessionSettings->NumPublicConnections = NumPublicConnections;
 	LastSessionSettings->bAllowJoinInProgress = true;
 	LastSessionSettings->bAllowJoinViaPresence = true;
 	LastSessionSettings->bShouldAdvertise = true;
 	LastSessionSettings->bUsesPresence = true;
+	LastSessionSettings->bAllowJoinViaPresenceFriendsOnly = false;
 	LastSessionSettings->bUseLobbiesIfAvailable = true;
 	LastSessionSettings->Set(FName("MatchType"), MatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 	LastSessionSettings->BuildUniqueId = 1;
 
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-
-	if(!SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings))
+	if (LocalPlayer != nullptr)
 	{
-		UE_LOG(LogSessionsSubsystem, Error, TEXT("Failed to create session for unknown reason"));
-		MMSOnCreateSessionComplete.Broadcast(false);
-		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+		const FUniqueNetIdRepl UserId = *LocalPlayer->GetPreferredUniqueNetId();
+		if (UserId.IsValid())
+		{
+			if(!SessionInterface->CreateSession(*UserId, NAME_GameSession, *LastSessionSettings))
+			{
+				UE_LOG(LogSessionsSubsystem, Error, TEXT("Failed to create session for unknown reason"));
+				MMSOnCreateSessionComplete.Broadcast(false);
+				SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+			}
+		}
+		else
+		{
+			UE_LOG(LogSessionsSubsystem, Error, TEXT("Cannot create session because UserId is invalid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogSessionsSubsystem, Error, TEXT("Cannot create session because local player is invalid"));
 	}
 }
 
@@ -98,6 +115,8 @@ void UMultiplayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 		MMSOnJoinSessionComplete.Broadcast(EOnJoinSessionCompleteResult::UnknownError);
 		return;
 	}
+
+	UE_LOG(LogSessionsSubsystem, Log, TEXT("Joining session..."));
 
 	JoinSessionCompleteDelegateHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegate);
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
@@ -149,13 +168,32 @@ void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, b
 	if(SessionInterface != nullptr)
 	{
 		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+		
+		if(bWasSuccessful)
+		{
+			UE_LOG(LogSessionsSubsystem, Log, TEXT("Session %s was successfully created!"), *SessionName.ToString());
+			
+			const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+			if(LocalPlayer != nullptr)
+			{
+				const FUniqueNetIdRepl UserId = LocalPlayer->GetPreferredUniqueNetId();
+				if (UserId.IsValid())
+				{
+					SessionInterface->RegisterPlayer(SessionName, *UserId, false);
+				}
+				else
+				{
+					UE_LOG(LogSessionsSubsystem, Error, TEXT("Cannot register player because UserId is invalid"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogSessionsSubsystem, Error, TEXT("Cannot register player because local player is not valid"));
+			}
+		}
 	}
 
-	if(bWasSuccessful)
-	{
-		UE_LOG(LogSessionsSubsystem, Log, TEXT("Session %s was successfully created!"), *SessionName.ToString());
-	}
-	else
+	if(!bWasSuccessful)
 	{
 		UE_LOG(LogSessionsSubsystem, Error, TEXT("Failed to create session %s"), *SessionName.ToString());
 	}
