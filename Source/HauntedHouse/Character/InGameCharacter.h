@@ -10,6 +10,7 @@
 #include "HauntedHouse/Player/PlayerState/BaseCharacterDataAsset.h"
 #include "InGameCharacter.generated.h"
 
+
 DECLARE_LOG_CATEGORY_EXTERN(LogCharacter, Log, All)
 
 /**

@@ -5,12 +5,9 @@
 
 #include "KismetTraceUtils.h"
 #include "Engine/SkinnedAssetCommon.h"
-#include "GeometryCollection/Facades/CollectionConstraintOverrideFacade.h"
 #include "HauntedHouse/Components/InteractableComponent.h"
-#include "HauntedHouse/Player/InGamePlayerController.h"
 #include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 #include "Net/UnrealNetwork.h"
-#include "Sections/MovieScene3DTransformSection.h"
 
 DEFINE_LOG_CATEGORY(LogCharacter)
 
