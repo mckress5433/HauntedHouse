@@ -30,8 +30,7 @@ class HAUNTEDHOUSE_API AInGameCharacter : public ABaseCharacter, public IAbility
 	static FAutoConsoleVariableRef CVarDrawDebug;
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* CameraComp;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UWidgetInteractionComponent* WidgetInteractionComp;
 
@@ -61,6 +60,8 @@ protected:
 
 	class UCharacterAbilitySystemComponent* AbilitySystemComponent;
 
+	// Whether or not the player has the options menu open. Used to trigger animation in the animBP
+	UPROPERTY(Replicated)
 	bool bIsUIActive = false;
 
 	AActor* FocusTarget;
@@ -74,7 +75,9 @@ protected:
 	float ElapsedTimeDuringInterpolation;
 
 public:
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
+	UCameraComponent* CameraComp;
+	
 	/*
 	 * Functions
 	 */
@@ -99,7 +102,14 @@ protected:
 	void UpdateCameraRotationInterpolation();
 	FRotator GetTargetCameraRotation();
 
+	UFUNCTION(Server, Reliable)
+	void Server_SetUIActive(bool bIsActive);
+
 public:
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool GetIsUIActive() { return bIsUIActive; }
+	
 	// Handles movement input
 	void HandleMoveInput(const FVector2D& InputVector);
 	// Handles the start of an interaction input

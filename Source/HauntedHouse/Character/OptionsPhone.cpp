@@ -3,6 +3,7 @@
 
 #include "OptionsPhone.h"
 
+#include "InGameCharacter.h"
 #include "Components/Widget.h"
 #include "Components/WidgetComponent.h"
 
@@ -10,7 +11,8 @@
 AOptionsPhone::AOptionsPhone()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	SetReplicates(true);
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("Mesh");
 	RootComponent = Mesh;
@@ -24,7 +26,17 @@ AOptionsPhone::AOptionsPhone()
 void AOptionsPhone::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (auto character = Cast<AInGameCharacter>(GetOwner()); character != nullptr)
+	{
+		if (AController* controller = character->GetController(); controller != nullptr)
+		{
+			if (controller->IsLocalPlayerController())
+			{
+				character->StartCameraRotationInterpolation(this, 0.5f);
+			}
+		}
+	}
 }
 
 // Called every frame

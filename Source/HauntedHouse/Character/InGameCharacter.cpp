@@ -258,6 +258,7 @@ void AInGameCharacter::InteractionZoneTick()
 void AInGameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, bIsUIActive);
 }
 
 void AInGameCharacter::UpdateCameraRotationInterpolation()
@@ -276,12 +277,6 @@ void AInGameCharacter::UpdateCameraRotationInterpolation()
 	// Apply the rotation to the camera component
 	CameraComp->SetWorldRotation(NewRotation);
 
-	// Stop interpolation if it is complete
-	if (Alpha >= 1.0f)
-	{
-		CancelCameraInterpolation();
-	}
-
 }
 
 FRotator AInGameCharacter::GetTargetCameraRotation()
@@ -292,6 +287,11 @@ FRotator AInGameCharacter::GetTargetCameraRotation()
 	FVector CameraLocation = CameraComp->GetComponentLocation();
 	FVector DirectionToTarget = (FocusTarget->GetActorLocation() - CameraLocation).GetSafeNormal();
 	return FRotationMatrix::MakeFromX(DirectionToTarget).Rotator();
+}
+
+void AInGameCharacter::Server_SetUIActive_Implementation(bool bIsActive)
+{
+	bIsUIActive = bIsActive;
 }
 
 void AInGameCharacter::HandleMoveInput(const FVector2D& InputVector)
@@ -454,6 +454,7 @@ void AInGameCharacter::CancelCameraInterpolation()
 void AInGameCharacter::ToggleWidgetInteractionActivation(bool bIsActive)
 {
 	WidgetInteractionComp->SetActive(bIsActive);
+	Server_SetUIActive(bIsActive);
 }
 
 void AInGameCharacter::SetThirdPersonMesh(USkeletalMesh* NewMesh)
