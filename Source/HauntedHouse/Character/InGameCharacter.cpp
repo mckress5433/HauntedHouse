@@ -24,7 +24,7 @@ FAutoConsoleVariableRef AInGameCharacter::CVarDrawDebug(
 
 AInGameCharacter::AInGameCharacter()
 {
-	bReplicates = true;
+	SetReplicates(true);
 	
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(FName("CameraComp"));
 	CameraComp->SetupAttachment(GetMesh());
