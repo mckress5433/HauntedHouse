@@ -7,11 +7,10 @@
 #include "BaseCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetInteractionComponent.h"
+#include "HauntedHouse/Components/InteractionComponent.h"
 #include "HauntedHouse/Player/PlayerState/BaseCharacterDataAsset.h"
 #include "InGameCharacter.generated.h"
 
-
-DECLARE_LOG_CATEGORY_EXTERN(LogCharacter, Log, All)
 
 /**
  * 
@@ -22,18 +21,14 @@ class HAUNTEDHOUSE_API AInGameCharacter : public ABaseCharacter, public IAbility
 	GENERATED_BODY()
 
 	AInGameCharacter();
-
-	FTimerHandle InteractionZoneTickHandle;
-	AActor* FocusedInteractable;
-
-	// Console variable to toggle debug drawing
-	static int32 bDrawDebug;
-	static FAutoConsoleVariableRef CVarDrawDebug;
 	
 protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UWidgetInteractionComponent* WidgetInteractionComp;
+
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"), Category=Interaction)
+	UInteractionComponent* InteractionComponent;
 
 	UPROPERTY(EditDefaultsOnly)
 	USkeletalMesh* FirstPersonMesh;
@@ -47,18 +42,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UAnimInstance> ThirdPersonAnimBP;
 	
-	UPROPERTY(EditDefaultsOnly, Category=Interaction)
-	float InteractionTickRate = 0.06f;
-	// Trace radius for the sphere trace
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interaction)
-	float SphereRadius = 100.0f;
-	// Trace distance
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interaction)
-	float TraceDistance = 1000.0f;
-	// Trace channel
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interaction)
-	TEnumAsByte<ECollisionChannel> TraceChannel;
 
+	UPROPERTY()
 	class UCharacterAbilitySystemComponent* AbilitySystemComponent;
 
 	// Whether or not the player has the options menu open. Used to trigger animation in the animBP
@@ -88,8 +73,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
-	
-	void InteractionZoneTick();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -110,6 +93,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool GetIsUIActive() { return bIsUIActive; }
+
+	UInteractionComponent* GetInteractionComponent() const { return InteractionComponent; }
 	
 	// Handles movement input
 	void HandleMoveInput(const FVector2D& InputVector);

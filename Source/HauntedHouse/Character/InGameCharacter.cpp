@@ -2,22 +2,10 @@
 
 
 #include "InGameCharacter.h"
-
-#include "KismetTraceUtils.h"
 #include "Engine/SkinnedAssetCommon.h"
-#include "HauntedHouse/Components/InteractableComponent.h"
+#include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 #include "Net/UnrealNetwork.h"
-
-DEFINE_LOG_CATEGORY(LogCharacter)
-
-int32 AInGameCharacter::bDrawDebug = 0;
-FAutoConsoleVariableRef AInGameCharacter::CVarDrawDebug(
-	TEXT("Interaction.DebugInteractionTrace"),				// CVar name
-	AInGameCharacter::bDrawDebug,						// Variable to modify
-	TEXT("Enable or disable debug drawing for sphere trace (0 = Disable, 1 = Enable)"), // Help text
-	ECVF_Default										// Flags (Default means it's modifiable at runtime)
-);
 
 AInGameCharacter::AInGameCharacter()
 {
@@ -28,6 +16,8 @@ AInGameCharacter::AInGameCharacter()
 
 	WidgetInteractionComp = CreateDefaultSubobject<UWidgetInteractionComponent>(FName("WidgetInteractionComp"));
 	WidgetInteractionComp->SetupAttachment(CameraComp);
+
+	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(FName("InteractionComponent"));
 }
 
 void AInGameCharacter::BeginPlay()
@@ -45,9 +35,9 @@ void AInGameCharacter::BeginPlay()
 		}
 	}
 		
-	if(UWorld* world = GetWorld(); world != nullptr && IsLocallyControlled())
+	if (InteractionComponent != nullptr)
 	{
-		world->GetTimerManager().SetTimer(InteractionZoneTickHandle, this, &ThisClass::InteractionZoneTick, InteractionTickRate, true);		
+		InteractionComponent->StartTimer();
 	}
 }
 
@@ -94,161 +84,6 @@ void AInGameCharacter::OnRep_PlayerState()
 			UpdateMeshes(characterDA->GetCharacterMeshData(), characterDA->GetCharacterColor());	
 		}
 		UpdateMeshes_Multicast();
-	}
-}
-
-void AInGameCharacter::InteractionZoneTick()
-{
-	UWorld* world = GetWorld();
-	if(world == nullptr) return;
-	
-	AActor* InteractableOfInterest = nullptr;
-	TArray<AActor*> InteractableActors;
-
-	// Start and end locations for the trace
-	FVector StartLocation = GetActorLocation();
-	FVector EndLocation = StartLocation + (GetActorForwardVector() * TraceDistance);
-
-	// Parameters for the trace
-	FCollisionQueryParams TraceParams(FName(TEXT("SphereTrace")), true, this);
-	TraceParams.bTraceComplex = true;
-	TraceParams.bReturnPhysicalMaterial = false;
-
-	// Struct to store trace results
-	TArray<FHitResult> HitResults;
-
-	// Perform the sphere trace
-	bool bHit = world->SweepMultiByChannel(
-		HitResults,                  // The result of the trace (what it hit)
-		StartLocation,              // Starting point of the trace
-		EndLocation,                // End point of the trace
-		FQuat::Identity,            // Rotation (none in this case)
-		TraceChannel,               // Trace channel (e.g., ECC_Visibility, ECC_PhysicsBody)
-		FCollisionShape::MakeSphere(SphereRadius),  // Sphere radius
-		TraceParams                 // Additional trace parameters
-	);
-
-	if(bDrawDebug)
-	{
-		DrawDebugSphereTraceMulti(
-			world,
-			StartLocation,
-			EndLocation,
-			SphereRadius,
-			EDrawDebugTrace::ForDuration,
-			bHit, HitResults,
-			FLinearColor::Green,
-			FLinearColor::Red,
-			InteractionTickRate);
-	}
-	
-	for(FHitResult hitResult : HitResults)
-	{
-		if(AActor* overlappedActor = hitResult.GetActor(); overlappedActor != nullptr)
-		{
-			if(const auto InteractableComponent =  overlappedActor->FindComponentByClass<UInteractableComponent>();
-			InteractableComponent != nullptr && InteractableComponent->CanInteract())
-			{
-				if(InteractableComponent->GetIsHostOnly())
-				{
-					if(GetLocalRole() == ROLE_Authority)
-					{
-						InteractableActors.Add(overlappedActor);
-					}
-				}
-				else
-				{
-					InteractableActors.Add(overlappedActor);
-				}
-			}
-		}
-	}
-
-	if(InteractableActors.Num() > 0)
-	{
-		if(InteractableActors.Num() == 1)
-		{
-			InteractableOfInterest = InteractableActors[0];
-		}
-		else
-		{
-			if(CameraComp != nullptr)
-			{
-				// Struct to store trace results
-				FHitResult HitResult;
-				
-				// Perform the sphere trace
-				bHit = GetWorld()->LineTraceSingleByChannel(
-					HitResult,                  // The result of the trace (what it hit)
-					StartLocation,              // Starting point of the trace
-					EndLocation,                // End point of the trace
-					TraceChannel,               // Trace channel (e.g., ECC_Visibility, ECC_PhysicsBody)
-					TraceParams                 // Additional trace parameters
-				);
-
-				// Check if something was hit
-				if (bHit)
-				{
-					if(bDrawDebug == 1)
-					{
-						// Optionally draw a debug sphere at the hit location
-						DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Red, false, 5.0f);
-					}
-
-					if(AActor* HitActor = HitResult.GetActor(); HitActor != nullptr)
-					{
-						if(auto InteractableComponent = HitActor->FindComponentByClass<UInteractableComponent>(); InteractableComponent != nullptr && InteractableComponent->CanInteract())
-						{
-							InteractableOfInterest = HitActor;
-						}
-					}
-					else
-					{
-						AActor* closestActor = nullptr;
-						float closestDist = TraceDistance;
-						for(AActor* actor : InteractableActors)
-						{
-							float distToImpact = (actor->GetActorLocation() - HitResult.ImpactPoint).Length();
-							if(distToImpact < closestDist)
-							{
-								closestActor = actor;
-							}
-						}
-
-						if(closestActor != nullptr)
-						{
-							InteractableOfInterest = closestActor;
-						}
-					}
-				}
-				else
-				{
-					if(bDrawDebug == 1)
-					{
-						// No hit, draw the path of the sphere trace
-						DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 5.0f, 0, 1.0f);
-					}
-				}
-			}
-		}
-	}
-
-	if(FocusedInteractable != InteractableOfInterest)
-	{
-		if(FocusedInteractable != nullptr)
-		{
-			if(UInteractableComponent* interactableComponent = FocusedInteractable->FindComponentByClass<UInteractableComponent>(); interactableComponent != nullptr)
-			{
-				interactableComponent->HideInteractionText();
-				FocusedInteractable = nullptr;
-			}
-		}
-		
-		if(InteractableOfInterest != nullptr)
-		{
-			InteractableOfInterest->FindComponentByClass<UInteractableComponent>()->ShowInteractionText();
-			FocusedInteractable = InteractableOfInterest;
-		}
 	}
 }
 
@@ -304,23 +139,17 @@ void AInGameCharacter::HandleMoveInput(const FVector2D& InputVector)
 
 void AInGameCharacter::HandleInteractionInput_Start()
 {
-	if(FocusedInteractable != nullptr)
+	if (InteractionComponent != nullptr)
 	{
-		if(auto InteractableComponent = FocusedInteractable->FindComponentByClass<UInteractableComponent>(); InteractableComponent != nullptr)
-		{
-			InteractableComponent->Interact();
-		}
+		InteractionComponent->TryStartInteract();
 	}
 }
 
 void AInGameCharacter::HandleInteractionInput_End()
 {
-	if(FocusedInteractable != nullptr)
+	if (InteractionComponent != nullptr)
 	{
-		if(auto InteractableComponent = FocusedInteractable->FindComponentByClass<UInteractableComponent>(); InteractableComponent != nullptr)
-		{
-			InteractableComponent->CancelInteraction();
-		}
+		InteractionComponent->CancelInteraction();
 	}
 }
 

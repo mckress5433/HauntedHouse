@@ -5,15 +5,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "HauntedHouse/Components/InteractableComponent.h"
-#include "LevelTransitionTirgger.generated.h"
+#include "LevelTransitionTrigger.generated.h"
 
 UCLASS()
-class HAUNTEDHOUSE_API ALevelTransitionTirgger : public AActor
+class HAUNTEDHOUSE_API ALevelTransitionTrigger : public AActor
 {
 	GENERATED_BODY()
 	
 	// Sets default values for this actor's properties
-	ALevelTransitionTirgger();
+	ALevelTransitionTrigger();
 	
 protected:
 	UPROPERTY(EditDefaultsOnly)

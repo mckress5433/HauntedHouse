@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "LevelTransitionTirgger.h"
+#include "LevelTransitionTrigger.h"
 
 #include "GameFramework/GameMode.h"
 #include "HauntedHouse/Game/HauntedHouseGameMode.h"
 
 // Sets default values
-ALevelTransitionTirgger::ALevelTransitionTirgger()
+ALevelTransitionTrigger::ALevelTransitionTrigger()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -16,10 +16,9 @@ ALevelTransitionTirgger::ALevelTransitionTirgger()
 	RootComponent = InteractableMesh;
 	
 	InteractableComponent = CreateDefaultSubobject<UInteractableComponent>(FName("InteractableComponent"));
-	InteractableComponent->SetupAttachment(InteractableMesh);
 }
 
-void ALevelTransitionTirgger::OnInteractEvent()
+void ALevelTransitionTrigger::OnInteractEvent()
 {
 	if(const UWorld* world = GetWorld(); world != nullptr)
 	{
@@ -31,13 +30,13 @@ void ALevelTransitionTirgger::OnInteractEvent()
 	
 }
 
-void ALevelTransitionTirgger::BeginPlay()
+void ALevelTransitionTrigger::BeginPlay()
 {
 	Super::BeginPlay();
 
 	if(GetLocalRole() == ROLE_Authority && InteractableComponent != nullptr)
 	{
-		InteractableComponent->OnInteract.AddDynamic(this, &ALevelTransitionTirgger::OnInteractEvent);
+		InteractableComponent->OnInteractEvent.AddDynamic(this, &ALevelTransitionTrigger::OnInteractEvent);
 	}
 }
 
