@@ -35,7 +35,7 @@ void AInGameCharacter::BeginPlay()
 		}
 	}
 		
-	if (InteractionComponent != nullptr)
+	if (InteractionComponent != nullptr && Controller != nullptr && Controller->IsLocalController())
 	{
 		InteractionComponent->StartTimer();
 	}

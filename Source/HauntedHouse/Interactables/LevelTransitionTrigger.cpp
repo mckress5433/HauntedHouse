@@ -11,6 +11,7 @@ ALevelTransitionTrigger::ALevelTransitionTrigger()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	SetReplicates(true);
 
 	InteractableMesh = CreateDefaultSubobject<UStaticMeshComponent>(FName("Interactable Mesh"));
 	RootComponent = InteractableMesh;
@@ -24,7 +25,7 @@ void ALevelTransitionTrigger::OnInteractEvent()
 	{
 		if(const auto gameMode = Cast<AHauntedHouseGameMode>(world->GetAuthGameMode()); gameMode != nullptr)
 		{
-			gameMode->InitiateServerTravel("/Game/Maps/HauntedHouse", true);
+			//gameMode->InitiateServerTravel("/Game/Maps/HauntedHouse", true);
 		}
 	}
 	

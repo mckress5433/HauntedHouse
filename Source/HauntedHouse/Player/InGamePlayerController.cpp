@@ -3,6 +3,8 @@
 
 #include "InGamePlayerController.h"
 #include "HauntedHouse/Character/InGameCharacter.h"
+#include "PlayerState/InGamePlayerState.h"
+#include "EnhancedInput/Public/EnhancedInputComponent.h"
 
 void AInGamePlayerController::BeginPlay()
 {
@@ -54,7 +56,7 @@ void AInGamePlayerController::StartInteraction()
 void AInGamePlayerController::EndInteraction() 
 {
 	AInGameCharacter* PlayerCharacter = Cast<AInGameCharacter>(GetCharacter());
-	if (PlayerCharacter)
+	if (PlayerCharacter != nullptr)
 	{
 		// Pass the input to the player character
 		PlayerCharacter->HandleInteractionInput_End();

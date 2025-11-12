@@ -4,10 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BasePlayerController.h"
-#include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "HauntedHouse/Widgets/BaseWidget.h"
-#include "PlayerState/InGamePlayerState.h"
 #include "InGamePlayerController.generated.h"
 
 /**

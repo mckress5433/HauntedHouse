@@ -3,14 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/WidgetComponent.h"
 #include "InteractableComponent.generated.h"
 
 class UInteractionComponent;
-DECLARE_DYNAMIC_DELEGATE(FOnBeginHover);
-DECLARE_DYNAMIC_DELEGATE(FOnEndHover);
-DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUpdateInteractionProgress, uint8, Progress);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBeginHover);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndHover);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractStart);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractCanceled);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUpdateInteractionProgress, uint8, Progress);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteract);
+
 
 UCLASS(Blueprintable, ClassGroup="HauntedHouse", hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent))
 class HAUNTEDHOUSE_API UInteractableComponent : public UActorComponent
@@ -19,10 +21,12 @@ class HAUNTEDHOUSE_API UInteractableComponent : public UActorComponent
 	UInteractableComponent();
 	
 	FTimerHandle InteractionTimerHandle;
+
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_CurrentHoldTime)
 	float CurrentHoldTime;
 
-	UPROPERTY(Replicated)
-	float bHasBeenTriggered = false;
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_HasBeenTriggered)
+	bool bHasBeenTriggered = false;
 
 	// Whether this component is being interacted.
 	// Used to prevent multiple players from interacting at the same time
@@ -31,56 +35,51 @@ class HAUNTEDHOUSE_API UInteractableComponent : public UActorComponent
 
 	
 protected:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	bool bHostOnly = false;
 	// The amount of time the player must hold the interaction button to complete the interaction
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	float HoldTime = 0.0f;
 	// The tick rate in seconds for the interaction tick
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	float InteractionDeltaTime = 0.03f;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	bool bOnlyInteractOnce = false;
 	
 public:
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnBeginHover OnBeginHoverEvent;
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnEndHover OnEndHoverEvent;
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnInteract OnInteractEvent;
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnUpdateInteractionProgress OnUpdateInteractionProgressEvent;
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractStart OnInteractStartEvent;
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractCanceled OnInteractCanceledEvent;
+	
 	
 	/*
 	 * Functions
 	 */
 private:
 
-	// Ask server if client can interact.
-	// If client can interact with component then Client_StartInteraction is called
-	UFUNCTION(Server, Reliable)
-	void Server_TryToInteract();
-
-	// bCanStartInteraction so that binding to UpdateInteractionProgressEvent can be cleared
-	UFUNCTION(Client, Reliable)
-	void Client_StartInteract(bool bCanStartInteraction);
-
-	UFUNCTION(Server, Reliable)
-	void Server_CancelInteract();
-	UFUNCTION(Server, Reliable)
-	void Server_InteractionComplete();
 	
 protected:
-	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
-	void StartInteraction();
+	
 	void InteractionTick();
 	void EndInteraction();
+
+	UFUNCTION()
+	void OnRep_HasBeenTriggered();
+	UFUNCTION()
+	void OnRep_CurrentHoldTime();
 	
 public:
 	
@@ -89,11 +88,15 @@ public:
 	// Triggered when InteractionComponent::InteractableComp is no longer set to this object
 	void EndHover() const;
 
-	// Called from the InteractionComponent
-	void TryInteract();
+	// Ask server if InteractionComponent can interact.
+	// Return true if it is able to interact
+	bool TryToInteract();
+	void StartInteraction();
 	void CancelInteraction();
 
 	bool CanInteract() const;
 	bool GetIsHostOnly() const { return bHostOnly; }
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool GetHasBeenTriggered() { return bHasBeenTriggered; }
 };

@@ -3,57 +3,16 @@
 
 #include "InteractableComponent.h"
 
+#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 #include "HauntedHouse/HauntedHouse.h"
+#include "HauntedHouse/Global/GlobalFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
+
 
 // Sets default values for this component's properties
 UInteractableComponent::UInteractableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	SetIsReplicated(true);
-}
-
-void UInteractableComponent::Server_TryToInteract_Implementation()
-{
-	if (!bInteractionActive)
-	{
-		bInteractionActive = true;
-		UE_LOG(LogInteraction, Log, TEXT("Server_TryToInteract"));
-		Client_StartInteract(true);
-	}
-	else
-	{
-		Client_StartInteract(false);
-	}
-}
-
-void UInteractableComponent::Client_StartInteract_Implementation(bool bCanStartInteraction)
-{
-	UE_LOG(LogInteraction, Log, TEXT("Client_StartInteract_Implementation"));
-	if (bCanStartInteraction)
-	{
-		StartInteraction();
-	}
-	else
-	{
-		OnUpdateInteractionProgressEvent.Clear();
-	}
-}
-
-void UInteractableComponent::Server_CancelInteract_Implementation()
-{
-	bInteractionActive = false;
-}
-
-void UInteractableComponent::Server_InteractionComplete_Implementation()
-{
-	bHasBeenTriggered = true;
-}
-
-void UInteractableComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
 }
 
 void UInteractableComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -82,6 +41,11 @@ void UInteractableComponent::StartInteraction()
 		{
 			world->GetTimerManager().SetTimer(InteractionTimerHandle, this, &ThisClass::InteractionTick, InteractionDeltaTime, true);
 		}
+
+		if (OnInteractStartEvent.IsBound())
+		{
+			OnInteractStartEvent.Broadcast();
+		}
 	}
 }
 
@@ -95,24 +59,47 @@ void UInteractableComponent::InteractionTick()
 	else
 	{
 		CurrentHoldTime += InteractionDeltaTime;
-
-		if (OnUpdateInteractionProgressEvent.IsBound())
+		OnRep_CurrentHoldTime();
+		if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
 		{
 			uint8 progress = static_cast<uint8>((CurrentHoldTime / HoldTime)*100);
 			UE_LOG(LogInteraction, Log, TEXT("Progress: %d"), progress);
-			OnUpdateInteractionProgressEvent.Execute(progress);
 		}
 	}
 }
 
 void UInteractableComponent::EndInteraction()
 {
-	if(OnInteractEvent.IsBound())
+	if(UWorld* world = GetWorld(); GetWorld() != nullptr && InteractionTimerHandle.IsValid())
 	{
-		bHasBeenTriggered = true;	
-		
-		OnUpdateInteractionProgressEvent.Clear();
+		world->GetTimerManager().ClearTimer(InteractionTimerHandle);
+		InteractionTimerHandle.Invalidate();
+	}
+
+	CurrentHoldTime = 0.0f;
+	bHasBeenTriggered = true;
+	OnRep_HasBeenTriggered();
+	bInteractionActive = false;
+}
+
+void UInteractableComponent::OnRep_HasBeenTriggered()
+{
+	if (OnInteractEvent.IsBound())
+	{
 		OnInteractEvent.Broadcast();
+	}
+}
+
+void UInteractableComponent::OnRep_CurrentHoldTime()
+{
+	if (OnUpdateInteractionProgressEvent.IsBound())
+	{
+		uint8 progress = static_cast<uint8>((CurrentHoldTime / HoldTime)*100);
+		if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
+		{
+			GEngine->AddOnScreenDebugMessage(1, InteractionDeltaTime, FColor::Magenta, FString::Printf(TEXT("OnRep_CurrentHoldTime: %d"), progress));	
+		}
+		OnUpdateInteractionProgressEvent.Broadcast(progress);
 	}
 }
 
@@ -120,7 +107,7 @@ void UInteractableComponent::BeginHover() const
 {
 	if (OnBeginHoverEvent.IsBound())
 	{
-		OnBeginHoverEvent.Execute();
+		OnBeginHoverEvent.Broadcast();
 	}
 	else
 	{
@@ -132,7 +119,7 @@ void UInteractableComponent::EndHover() const
 {
 	if (OnEndHoverEvent.IsBound())
 	{
-		OnEndHoverEvent.Execute();
+		OnEndHoverEvent.Broadcast();
 	}
 	else
 	{
@@ -140,16 +127,16 @@ void UInteractableComponent::EndHover() const
 	}
 }
 
-void UInteractableComponent::TryInteract()
+bool UInteractableComponent::TryToInteract()
 {
-	/*if (GetOwnerRole() != ROLE_Authority)
-	{*/
-		Server_TryToInteract();
-	/*}
-	else
+	// Double check before interacting. Server may have a different value due to delay
+	if (CanInteract())
 	{
-		Server_TryToInteract_Implementation();
-	}*/
+		StartInteraction();
+		bInteractionActive = true;
+		return true;
+	}
+	return false;
 }
 
 void UInteractableComponent::CancelInteraction()
@@ -159,9 +146,23 @@ void UInteractableComponent::CancelInteraction()
 		world->GetTimerManager().ClearTimer(InteractionTimerHandle);
 		InteractionTimerHandle.Invalidate();
 	}
+
+	CurrentHoldTime = 0.0f;
+	if (!bOnlyInteractOnce)
+	{
+		bHasBeenTriggered = false;
+		OnRep_HasBeenTriggered();
+	}
+
+	if (OnInteractCanceledEvent.IsBound())
+	{
+		OnInteractCanceledEvent.Broadcast();
+	}
+
+	bInteractionActive = false;
 }
 
 bool UInteractableComponent::CanInteract() const
 {
-	return (!bOnlyInteractOnce || (bOnlyInteractOnce && !bHasBeenTriggered)); 
+	return (!bOnlyInteractOnce || (bOnlyInteractOnce && !bHasBeenTriggered)) && !bInteractionActive; 
 }

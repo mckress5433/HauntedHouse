@@ -2,11 +2,11 @@
 
 
 #include "InteractionComponent.h"
-
 #include "KismetTraceUtils.h"
 #include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Character/InGameCharacter.h"
-#include "HauntedHouse/Global/GlobalConsoleVariables.h"
+#include "HauntedHouse/Global/GlobalFunctionLibrary.h"
+
 
 // Sets default values for this component's properties
 UInteractionComponent::UInteractionComponent()
@@ -16,22 +16,84 @@ UInteractionComponent::UInteractionComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UInteractionComponent::TryStartInteract() const
+void UInteractionComponent::TryStartInteract()
 {
-	if (InteractableComp != nullptr)
+	Server_TryInteract(InteractableComp.Get());
+}
+
+void UInteractionComponent::Server_TryInteract_Implementation(UInteractableComponent* Interactable)
+{
+	if (Interactable != nullptr)
 	{
-		InteractableComp->TryInteract();
-		InteractableComp->OnUpdateInteractionProgressEvent.BindDynamic(this, &UInteractionComponent::HandleInteractionProgress);
-		OnHUDInteractionStart.Execute();
+		const bool interactionSuccessful = Interactable->TryToInteract();
+		Client_InteractionResponse(interactionSuccessful);
 	}
 }
 
-void UInteractionComponent::CancelInteraction() const
+void UInteractionComponent::Client_InteractionResponse_Implementation(bool bInteractionSuccessful)
 {
-	if (InteractableComp != nullptr)
+	if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
 	{
-		InteractableComp->CancelInteraction();
-		OnHUDInteractionEnd.Execute();
+		UE_LOG(LogInteraction, Log, TEXT("CanStartInteraction: %s"), bInteractionSuccessful ? TEXT("true") : TEXT("false"));
+	}
+
+	if (bInteractionSuccessful)
+	{
+		// Start Interaction
+		if (InteractableComp.IsValid())
+		{
+			if (!InteractableComp->OnUpdateInteractionProgressEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteractionProgress))
+			{
+				InteractableComp->OnUpdateInteractionProgressEvent.AddDynamic(this, &UInteractionComponent::HandleInteractionProgress);
+			}
+			if (!InteractableComp->OnInteractEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteract))
+			{
+				InteractableComp->OnInteractEvent.AddDynamic(this, &UInteractionComponent::HandleInteract);
+			}
+			InteractableComp->StartInteraction();
+		}
+		bIsInteracting = true;
+		
+		if (OnHUDInteractionStart.IsBound())
+		{
+			OnHUDInteractionStart.Execute();
+		}
+	}
+	else
+	{
+		// Send failed to interaction event
+		if (OnFailedToInteract.IsBound())
+		{
+			OnFailedToInteract.Execute();
+		}
+	}
+}
+
+void UInteractionComponent::CancelInteraction()
+{
+	if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
+	{
+		UE_LOG(LogInteraction, Log, TEXT("CancelInteraction called"));
+	}
+	
+	if (InteractableComp.IsValid())
+	{
+		bIsInteracting = false;
+		if (InteractableComp->OnInteractEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteract))
+		{
+			InteractableComp->OnInteractEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteract);
+		}
+		
+		Server_CancelInteraction(InteractableComp.Get());
+		
+		if (OnHUDInteractionEnd.IsBound())
+		{
+			OnHUDInteractionEnd.Execute();
+		}
+	}
+	else if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
+	{
+		UE_LOG(LogInteraction, Log, TEXT("Cannot cancel because InteractableComponent is not valid!"));
 	}
 }
 
@@ -42,7 +104,6 @@ void UInteractionComponent::StartTimer()
 	if (auto character = static_cast<AInGameCharacter*>(GetOwner()); character != nullptr)
 	{
 		CameraComp = MakeWeakObjectPtr<UCameraComponent>(character->CameraComp);
-		//PlayerHud = MakeWeakObjectPtr<UPlayerHud>(character->GetPlayerHud());
 
 		if (UWorld* world = character->GetWorld(); world != nullptr)
 		{
@@ -54,8 +115,8 @@ void UInteractionComponent::StartTimer()
 
 void UInteractionComponent::InteractionTick()
 {
-	TWeakObjectPtr<UInteractableComponent> foundInteractable = CheckForInteractable();
-
+	TWeakObjectPtr<UInteractableComponent> foundInteractable = MakeWeakObjectPtr<UInteractableComponent>(CheckForInteractable());
+	
 	if (foundInteractable.IsValid())
 	{
 		if (OnHUDHoverBegin.IsBound())
@@ -76,16 +137,26 @@ void UInteractionComponent::InteractionTick()
 	}
 	else if (InteractableComp.IsValid())
 	{
+		if (bIsInteracting)
+		{
+			CancelInteraction();
+		}
+		
 		InteractableComp->EndHover();
 		InteractableComp.Reset();
-
 		
 		if (OnHUDHoverEnd.IsBound())
 		{
 			OnHUDHoverEnd.Execute();
 		}
 	}
-	
+}
+
+bool UInteractionComponent::CanInteract(const UInteractableComponent* interactable) const
+{
+	return (interactable->CanInteract() || (bIsInteracting && interactable == InteractableComp.Get())) 
+				&& (!interactable->GetIsHostOnly()
+				|| (interactable->GetIsHostOnly() && GetOwnerRole() == ENetRole::ROLE_Authority));
 }
 
 UInteractableComponent* UInteractionComponent::CheckForInteractable() const
@@ -102,7 +173,7 @@ UInteractableComponent* UInteractionComponent::CheckForInteractable() const
 			TArray<AActor*> IgnoredActors;
 			IgnoredActors.Add(GetOwner());
 
-			EDrawDebugTrace::Type debugFlag = static_cast<EDrawDebugTrace::Type>(GInteractionDebugVariable.GetValueOnAnyThread(false));
+			EDrawDebugTrace::Type debugFlag = static_cast<EDrawDebugTrace::Type>(GlobalFunctionLibrary::GetInteractionDebugValue());
 			FCollisionQueryParams CollisionQueryParams;
 			CollisionQueryParams.AddIgnoredActors(IgnoredActors);
 			
@@ -137,7 +208,7 @@ UInteractableComponent* UInteractionComponent::CheckForInteractable() const
 				{
 					if (auto interactableComp =	hitActor->FindComponentByClass<UInteractableComponent>(); interactableComp != nullptr)
 					{
-						if (interactableComp->CanInteract())
+						if (CanInteract(interactableComp))
 						{
 							return interactableComp;
 						}
@@ -173,7 +244,7 @@ UInteractableComponent* UInteractionComponent::CheckForInteractable() const
 				{
 					if (auto interactableComp = hitActor->FindComponentByClass<UInteractableComponent>(); interactableComp != nullptr)
 					{
-						if (interactableComp->CanInteract())
+						if (CanInteract(interactableComp))
 						{
 							float distToHit = (hitResult.ImpactPoint - hitLocation).Length();
 							if (distToHit < shortestDist)
@@ -214,6 +285,24 @@ void UInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void UInteractionComponent::HandleInteractionProgress(uint8 Progress)
 {
 	OnHUDInteractionProgress.Execute(Progress);
+}
+
+void UInteractionComponent::HandleInteract()
+{
+	bIsInteracting = false;
+	if (InteractableComp.IsValid() && InteractableComp->OnInteractEvent.IsAlreadyBound(this, & UInteractionComponent::HandleInteract))
+	{
+		InteractableComp->OnInteractEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteract);
+	}
+}
+
+
+void UInteractionComponent::Server_CancelInteraction_Implementation(UInteractableComponent* interactableComponent) const
+{
+	if (interactableComponent != nullptr)
+	{
+		interactableComponent->CancelInteraction();
+	}
 }
 
 

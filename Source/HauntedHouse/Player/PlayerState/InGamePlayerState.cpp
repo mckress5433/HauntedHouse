@@ -18,7 +18,7 @@ AInGamePlayerState::AInGamePlayerState()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// AbilitySystemComponent needs to be updated at a high frequency.
-	NetUpdateFrequency = 1000.0f;
+	//NetUpdateFrequency = 1000.0f;
 
 	CreateDefaultSubobject<UCharacterAttributeSet>(FName("AttributeSet"));
 	
