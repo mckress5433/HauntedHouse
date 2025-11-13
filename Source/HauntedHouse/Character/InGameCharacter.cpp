@@ -9,7 +9,7 @@
 
 AInGameCharacter::AInGameCharacter()
 {
-	SetReplicates(true);
+	bReplicates = true;
 	
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(FName("CameraComp"));
 	CameraComp->SetupAttachment(GetMesh());
