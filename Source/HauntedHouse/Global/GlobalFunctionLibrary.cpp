@@ -6,3 +6,8 @@ int GlobalFunctionLibrary::GetInteractionDebugValue()
 {
 	return CVarInteractionDebugVariable.GetValueOnAnyThread(false);
 }
+
+int GlobalFunctionLibrary::GetSaveSystemDebugValue()
+{
+	return CVarSaveSystemDebugVariable.GetValueOnAnyThread(false);
+}

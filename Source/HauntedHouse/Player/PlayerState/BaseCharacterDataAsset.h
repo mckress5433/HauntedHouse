@@ -4,41 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "HauntedHouse/Global/GlobalStructs.h"
 #include "BaseCharacterDataAsset.generated.h"
-
-USTRUCT(BlueprintType)
-struct FCharacterAttributeData
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere)
-	float MaxHealth;
-	UPROPERTY(EditAnywhere)
-	float MaxStamina;
-	UPROPERTY(EditAnywhere)
-	float StaminaRegenRate;
-
-	UPROPERTY(EditAnywhere)
-	float BaseStrength;
-	UPROPERTY(EditAnywhere)
-	float BaseSpeed;
-	UPROPERTY(EditAnywhere)
-	float BaseIntelligence;
-	UPROPERTY(EditAnywhere)
-	float BaseSanity;
-};
-
-USTRUCT(BlueprintType)
-struct FCharacterMeshData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	USkeletalMesh* FirstPersonMesh;
-
-	UPROPERTY(EditAnywhere)
-	USkeletalMesh* ThirdPersonMesh;
-};
 
 /**
  * 
