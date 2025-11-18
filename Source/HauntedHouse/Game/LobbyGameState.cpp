@@ -6,10 +6,49 @@
 #include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 #include "Net/UnrealNetwork.h"
 
-void ALobbyGameState::UpdatePlayersCharacterInfos(AInGamePlayerState* PlayerState,
-	UBaseCharacterDataAsset* NewCharacterDataAsset)
+void ALobbyGameState::OnRep_CharacterSelectionData()
 {
-	TArray<FPlayerCharactersInfo> tmpArray = PlayersCharacterInfos;
+	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
+
+	for(int i=0; i<CharacterSelectionData.Num(); i++)
+	{
+		if(AInGamePlayerState* PlayerState = CharacterSelectionData[i].PlayerState; PlayerState != nullptr)
+		{
+			PlayerState->UpdateCharacterInfoAndMeshes(CharacterSelectionData[i].CharacterDataAsset->ConvertToPlayersCharacterInfo());
+		}
+	}
+}
+
+void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CharacterSelectionData);
+}
+
+void ALobbyGameState::AssignPlayerNextAvailableCharacter(AInGamePlayerState* PlayerState)
+{
+	if(PlayerState == nullptr) return;
+
+	// Have to iterate for pointer to be valid apparently 
+	for(int i=0; i<CharacterSelectionData.Num(); i++)
+	{
+		if(CharacterSelectionData[i].PlayerState == nullptr)
+		{
+			CharacterSelectionData[i].PlayerState = PlayerState;
+			FPlayersCharacterInfo CharacterInfo = CharacterSelectionData[i].CharacterDataAsset->ConvertToPlayersCharacterInfo();
+			CharacterSelectionData[i].PlayerState->UpdateCharacterInfo(CharacterInfo);
+			PlayerState->UpdateCharacterInfoAndMeshes(CharacterInfo);
+			break;
+		}
+	}
+	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
+}
+
+void ALobbyGameState::UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState,
+	const UBaseCharacterDataAsset* NewCharacterDataAsset)
+{
+	TArray<FCharacterSelectionDatum> tmpArray = CharacterSelectionData;
 	// Have to iterate for pointer to be valid apparently 
 	for(int i=0; i<tmpArray.Num(); i++)
 	{
@@ -24,50 +63,7 @@ void ALobbyGameState::UpdatePlayersCharacterInfos(AInGamePlayerState* PlayerStat
 		}
 	}
 
-	PlayersCharacterInfos = tmpArray;
+	CharacterSelectionData = tmpArray;
 	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
-	PlayerState->UpdateCharacterInfoAndMeshes(NewCharacterDataAsset);
-}
-
-void ALobbyGameState::OnRep_PlayersCharacterInfos()
-{
-	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
-
-	for(int i=0; i<PlayersCharacterInfos.Num(); i++)
-	{
-		if(AInGamePlayerState* PlayerState = PlayersCharacterInfos[i].PlayerState; PlayerState != nullptr)
-		{
-			PlayerState->UpdateCharacterInfoAndMeshes(PlayersCharacterInfos[i].CharacterDataAsset);
-		}
-	}
-}
-
-void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ThisClass, PlayersCharacterInfos);
-}
-
-void ALobbyGameState::AssignPlayerNextAvailableCharacter(AInGamePlayerState* PlayerState)
-{
-	if(PlayerState == nullptr) return;
-
-	// Have to iterate for pointer to be valid apparently 
-	for(int i=0; i<PlayersCharacterInfos.Num(); i++)
-	{
-		if(PlayersCharacterInfos[i].PlayerState == nullptr)
-		{
-			PlayersCharacterInfos[i].PlayerState = PlayerState;
-			PlayersCharacterInfos[i].PlayerState->UpdateDefaultCharacterDataAsset(PlayersCharacterInfos[i].CharacterDataAsset);
-			break;
-		}
-	}
-	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
-}
-
-void ALobbyGameState::UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState,
-	UBaseCharacterDataAsset* NewCharacterDataAsset)
-{
-	UpdatePlayersCharacterInfos(PlayerState, NewCharacterDataAsset);
+	PlayerState->UpdateCharacterInfoAndMeshes(NewCharacterDataAsset->ConvertToPlayersCharacterInfo());
 }

@@ -34,6 +34,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	FColor GetCharacterColor() { return CharacterColor; }
 
+	FPlayersCharacterInfo ConvertToPlayersCharacterInfo() const;
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

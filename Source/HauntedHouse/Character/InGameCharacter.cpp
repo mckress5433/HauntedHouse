@@ -28,10 +28,8 @@ void AInGameCharacter::BeginPlay()
 	{
 		if (auto PS = GetPlayerState<AInGamePlayerState>(); PS != nullptr)
 		{
-			if(UBaseCharacterDataAsset* characterDA = PS->GetBaseCharacterDataAsset(); characterDA != nullptr)
-			{
-				UpdateMeshes(characterDA->GetCharacterMeshData(), characterDA->GetCharacterColor());	
-			}
+			FPlayersCharacterInfo CharacterInfo = PS->GetCharacterInfo();
+			UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
 		}
 	}
 		
@@ -79,11 +77,12 @@ void AInGameCharacter::OnRep_PlayerState()
 			UE_LOG(LogCharacter, Warning, TEXT("Failed to update ability ability system component. PlayerState return nullptr"));
 		}
 
-		if(UBaseCharacterDataAsset* characterDA = PS->GetBaseCharacterDataAsset(); characterDA != nullptr)
+		FPlayersCharacterInfo CharacterInfo = PS->GetCharacterInfo();
+		UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
+		if (GetLocalRole() == ROLE_Authority)
 		{
-			UpdateMeshes(characterDA->GetCharacterMeshData(), characterDA->GetCharacterColor());	
+			UpdateMeshes_Multicast(CharacterInfo);
 		}
-		UpdateMeshes_Multicast();
 	}
 }
 
@@ -183,7 +182,7 @@ UAbilitySystemComponent* AInGameCharacter::GetAbilitySystemComponent() const
 	return nullptr;
 }
 
-void AInGameCharacter::UpdateMeshes(FCharacterMeshData CharacterMeshData, FColor MeshColor)
+void AInGameCharacter::UpdateMeshes(const FCharacterMeshData& CharacterMeshData, const FColor& MeshColor)
 {
 	USkeletalMesh* FPSkelMesh = CharacterMeshData.FirstPersonMesh;
 	USkeletalMesh* TPSkelMesh = CharacterMeshData.ThirdPersonMesh;
@@ -301,15 +300,9 @@ void AInGameCharacter::SetThirdPersonMesh(USkeletalMesh* NewMesh)
 	}
 }
 
-void AInGameCharacter::UpdateMeshes_Multicast_Implementation()
+void AInGameCharacter::UpdateMeshes_Multicast_Implementation(FPlayersCharacterInfo CharacterInfo)
 {
-	if (auto PS = GetPlayerState<AInGamePlayerState>(); PS != nullptr)
-	{
-		if(UBaseCharacterDataAsset* characterDA = PS->GetBaseCharacterDataAsset(); characterDA != nullptr)
-		{
-			UpdateMeshes(characterDA->GetCharacterMeshData(), characterDA->GetCharacterColor());	
-		}
-	}
+	UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
 }
 
 void AInGameCharacter::SetFirstPersonMesh(USkeletalMesh* NewMesh)

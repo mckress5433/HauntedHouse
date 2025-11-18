@@ -3,28 +3,27 @@
 
 #include "InGamePlayerState.h"
 #include "OnlineSubsystem.h"
+#include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Character/InGameCharacter.h"
 #include "HauntedHouse/Game/LobbyGameState.h"
+#include "HauntedHouse/Game/SaveSystem/SaveGameSubsystem.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "HauntedHouse/GameplayEffects/InstantOverrideAllEffect.h"
+#include "HauntedHouse/Global/GlobalFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 AInGamePlayerState::AInGamePlayerState()
 {
 	bReplicates = true;
-	
+
 	AbilitySystemComponent = CreateDefaultSubobject<UCharacterAbilitySystemComponent>(FName("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
-	// AbilitySystemComponent needs to be updated at a high frequency.
-	//NetUpdateFrequency = 1000.0f;
-
 	CreateDefaultSubobject<UCharacterAttributeSet>(FName("AttributeSet"));
-	
 }
 
-void AInGamePlayerState::InitializeAttributes(const FCharacterAttributeData CharacterAttributeData) const
+void AInGamePlayerState::InitializeAttributes(const FCharacterAttributeData& CharacterAttributeData) const
 {
 	const UInstantOverrideAllEffect* InitializeAttributesEffect = NewObject<UInstantOverrideAllEffect>(GetTransientPackage(), FName(TEXT("InstanteOverrideAllEffect")));
 	const TSubclassOf<UInstantOverrideAllEffect> DynamicGameplayEffect = InitializeAttributesEffect->GetClass();
@@ -46,21 +45,41 @@ void AInGamePlayerState::InitializeAttributes(const FCharacterAttributeData Char
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
-void AInGamePlayerState::UpdateCharacterInfoAndMeshes(UBaseCharacterDataAsset* DataAsset)
+void AInGamePlayerState::UpdateCharacterInfoAndMeshes(const FPlayersCharacterInfo& PlayersCharacterInfo)
 {
-	if (GetLocalRole() == ROLE_Authority && AbilitySystemComponent != nullptr && CharacterDataAsset != nullptr)
+	CharacterInfo = PlayersCharacterInfo;
+	if (GetLocalRole() == ROLE_Authority && AbilitySystemComponent != nullptr)
 	{
-		const FCharacterAttributeData CharacterAttributeData = DataAsset->GetCharacterAttributeData();
+		const FCharacterAttributeData CharacterAttributeData = CharacterInfo.CharacterAttributeData;
 		InitializeAttributes(CharacterAttributeData);
 	}
 
 	if(auto character = Cast<AInGameCharacter>(GetPawn()); character != nullptr)
 	{
-		character->UpdateMeshes(DataAsset->GetCharacterMeshData(), DataAsset->GetCharacterColor());
+		character->UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
 	}
 }
 
-void AInGamePlayerState::HandleCharacterSelection_Implementation(UBaseCharacterDataAsset* DataAsset)
+void AInGamePlayerState::Server_UpdatePlayerData_Implementation(FSessionSaveStruct SessionSaveStruct)
+{
+	UpdateCharacterInfoAndMeshes(SessionSaveStruct.CharacterInfo);
+	Multicast_UpdatePlayerData(SessionSaveStruct);
+}
+
+void AInGamePlayerState::Multicast_UpdatePlayerData_Implementation(FSessionSaveStruct SessionSaveStruct)
+{
+	UpdateCharacterInfoAndMeshes(SessionSaveStruct.CharacterInfo);
+}
+
+void AInGamePlayerState::PrintSessionData() const
+{
+	UE_LOG(LogAttributes, Log, TEXT("Session Data..."));
+	UE_LOG(LogAttributes, Log, TEXT("    Character color: %s"), *CharacterInfo.CharacterColor.ToString());
+	UE_LOG(LogAttributes, Log, TEXT("    Third Person Mesh: %s"), *CharacterInfo.CharacterMeshData.ThirdPersonMesh->GetFullName());
+	PrintAttributeData(CharacterInfo.CharacterAttributeData);
+}
+
+void AInGamePlayerState::Server_HandleCharacterSelection_Implementation(UBaseCharacterDataAsset* DataAsset)
 {
 	if(auto GS = GetWorld()->GetGameState<ALobbyGameState>(); GS != nullptr)
 	{
@@ -140,9 +159,9 @@ void AInGamePlayerState::BeginPlay()
 	{
 		if(APlayerController* PC = GetPlayerController(); PC != nullptr)
 		{
-			if (PC->IsLocalController() && CharacterDataAsset != nullptr)
+			if (PC->IsLocalController())
 			{
-				const FCharacterAttributeData CharacterAttributeData = CharacterDataAsset->GetCharacterAttributeData();
+				const FCharacterAttributeData CharacterAttributeData = CharacterInfo.CharacterAttributeData;
 				InitializeAttributes(CharacterAttributeData);
 			}
 		}
@@ -172,7 +191,33 @@ void AInGamePlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(ThisClass, CharacterDataAsset);
+	DOREPLIFETIME(ThisClass, CharacterInfo);
+}
+
+FCharacterAttributeData AInGamePlayerState::GetCharacterAttributeData() const
+{
+	FCharacterAttributeData attributeData;
+
+	attributeData.BaseIntelligence = AttributeSet->Intelligence.GetCurrentValue();
+	attributeData.BaseSanity = AttributeSet->Sanity.GetCurrentValue();
+	attributeData.BaseSpeed = AttributeSet->Speed.GetCurrentValue();
+	attributeData.BaseStrength = AttributeSet->Strength.GetCurrentValue();
+	attributeData.MaxHealth = AttributeSet->MaxHealth.GetCurrentValue();
+	attributeData.MaxStamina = AttributeSet->MaxStamina.GetCurrentValue();
+	attributeData.StaminaRegenRate = AttributeSet->StaminaRegenRate.GetCurrentValue();
+	
+	return attributeData;
+}
+
+void AInGamePlayerState::PrintAttributeData(const FCharacterAttributeData& AttributeData)
+{
+	UE_LOG(LogAttributes, Log, TEXT("Character Attributes..."));
+	UE_LOG(LogAttributes, Log, TEXT("    BaseIntelligence: %f"), AttributeData.BaseIntelligence);
+	UE_LOG(LogAttributes, Log, TEXT("    BaseSanity: %f"), AttributeData.BaseSanity);
+	UE_LOG(LogAttributes, Log, TEXT("    BaseSpeed: %f"), AttributeData.BaseSpeed);
+	UE_LOG(LogAttributes, Log, TEXT("    BaseStrength: %f"), AttributeData.BaseStrength);
+	UE_LOG(LogAttributes, Log, TEXT("    MaxStamina: %f"), AttributeData.MaxStamina);
+	UE_LOG(LogAttributes, Log, TEXT("    StaminaRegenRate: %f"), AttributeData.StaminaRegenRate);
 }
 
 UAbilitySystemComponent* AInGamePlayerState::GetAbilitySystemComponent() const
@@ -180,16 +225,46 @@ UAbilitySystemComponent* AInGamePlayerState::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-void AInGamePlayerState::UpdateDefaultCharacterDataAsset(UBaseCharacterDataAsset* DataAsset)
+void AInGamePlayerState::UpdateCharacterInfo(const FPlayersCharacterInfo& InCharacterInfo)
 {
-	CharacterDataAsset = DataAsset;
-
-	if(APlayerController* PC = GetPlayerController(); PC != nullptr)
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		if(HasAuthority() && !PC->IsLocalController() && AbilitySystemComponent != nullptr && CharacterDataAsset != nullptr)
+		CharacterInfo = InCharacterInfo;
+		if(APlayerController* PC = GetPlayerController(); PC != nullptr)
 		{
-			const FCharacterAttributeData CharacterAttributeData = CharacterDataAsset->GetCharacterAttributeData();
-			InitializeAttributes(CharacterAttributeData);
+			if(HasAuthority() && !PC->IsLocalController() && AbilitySystemComponent != nullptr)
+			{
+				const FCharacterAttributeData CharacterAttributeData = CharacterInfo.CharacterAttributeData;
+				InitializeAttributes(CharacterAttributeData);
+			}
+		}
+	}
+}
+
+void AInGamePlayerState::Client_LoadPlayerData_Implementation()
+{
+	UGameInstance* gameInstance = GetGameInstance();
+	UWorld* world = GetWorld();
+	if(gameInstance != nullptr && world != nullptr)
+	{
+		auto saveSystem = gameInstance->GetSubsystem<USaveGameSubsystem>();
+		
+		if (saveSystem != nullptr)
+		{
+			saveSystem->LoadOrCreateSessionSaveData([this](const FSessionSaveStruct& SessionData)
+			{
+				CharacterInfo = SessionData.CharacterInfo;
+				UpdateCharacterInfoAndMeshes(CharacterInfo);
+				if (GetLocalRole() != ROLE_Authority)
+				{
+					Server_UpdatePlayerData(SessionData);
+				}
+				
+				if (GlobalFunctionLibrary::GetSaveSystemDebugValue() != 0)
+				{
+					PrintSessionData();
+				}
+			});
 		}
 	}
 }

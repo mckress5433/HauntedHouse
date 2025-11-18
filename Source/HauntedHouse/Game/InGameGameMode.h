@@ -13,5 +13,6 @@ UCLASS()
 class HAUNTEDHOUSE_API AInGameGameMode : public AHauntedHouseGameMode
 {
 	GENERATED_BODY()
-	
+
+	virtual void SetPlayerDefaults(APawn* PlayerPawn) override;
 };

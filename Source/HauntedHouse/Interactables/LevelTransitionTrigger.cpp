@@ -3,8 +3,12 @@
 
 #include "LevelTransitionTrigger.h"
 
-#include "GameFramework/GameMode.h"
+#include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Game/HauntedHouseGameMode.h"
+#include "HauntedHouse/Game/SaveSystem/SaveGameSubsystem.h"
+#include "HauntedHouse/Global/GlobalFunctionLibrary.h"
+#include "HauntedHouse/Player/InGamePlayerController.h"
+#include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 
 // Sets default values
 ALevelTransitionTrigger::ALevelTransitionTrigger()
@@ -21,14 +25,19 @@ ALevelTransitionTrigger::ALevelTransitionTrigger()
 
 void ALevelTransitionTrigger::OnInteractEvent()
 {
-	if(const UWorld* world = GetWorld(); world != nullptr)
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		if(const auto gameMode = Cast<AHauntedHouseGameMode>(world->GetAuthGameMode()); gameMode != nullptr)
+		Multicast_TiggerSaveOnClients();
+		UE_LOG(LogSaveGame, Log, TEXT("Level transition trigger"));
+	
+		if(const UWorld* world = GetWorld(); world != nullptr)
 		{
-			gameMode->InitiateServerTravel("/Game/Maps/HauntedHouse", true);
+			if(const auto gameMode = Cast<AHauntedHouseGameMode>(world->GetAuthGameMode()); gameMode != nullptr)
+			{
+				gameMode->InitiateServerTravel("/Game/Maps/HauntedHouse", true);
+			}
 		}
 	}
-	
 }
 
 void ALevelTransitionTrigger::BeginPlay()
@@ -38,6 +47,36 @@ void ALevelTransitionTrigger::BeginPlay()
 	if(GetLocalRole() == ROLE_Authority && InteractableComponent != nullptr)
 	{
 		InteractableComponent->OnInteractEvent.AddDynamic(this, &ALevelTransitionTrigger::OnInteractEvent);
+	}
+}
+
+void ALevelTransitionTrigger::Multicast_TiggerSaveOnClients_Implementation()
+{
+	UGameInstance* gameInstance = GetGameInstance();
+	UWorld* world = GetWorld();
+	if(gameInstance != nullptr && world != nullptr)
+	{
+		auto saveSystem = gameInstance->GetSubsystem<USaveGameSubsystem>();
+		auto playerController = static_cast<AInGamePlayerController*>(world->GetFirstPlayerController());
+		if (saveSystem != nullptr && playerController != nullptr)
+		{
+			if (auto playerState = playerController->GetPlayerState<AInGamePlayerState>(); playerState != nullptr)
+			{
+				if (GlobalFunctionLibrary::GetSaveSystemDebugValue() != 0)
+				{
+					playerState->PrintSessionData();
+				}
+				
+				FSessionSaveStruct SessionSaveData = FSessionSaveStruct(playerState->GetCharacterInfo(), 0);
+				saveSystem->SaveSessionSaveData(SessionSaveData, [this](bool bWasSuccessful)
+				{
+					if (bWasSuccessful)
+					{
+						
+					}
+				});	
+			}
+		}
 	}
 }
 

@@ -6,11 +6,12 @@
 #include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Global/GlobalFunctionLibrary.h"
 
-void USaveGameSubsystem::SaveSessionSaveData(FSessionSaveStruct SaveData, FOnSessionDataSaved Callback)
+void USaveGameSubsystem::SaveSessionSaveData(const FSessionSaveStruct& SaveData, FOnSessionDataSaved Callback)
 {
-	USessionSaveData* SaveGameObject = Cast<USessionSaveData>(CreateSessionSaveData());
-
+	USessionSaveData* SaveGameObject = CreateSessionSaveData();
+	
 	SaveGameObject->SaveData = SaveData;
+	CachedSessionSaveData = SaveGameObject;
 
 	PendingSessionSavedCallback = MoveTemp(Callback);
 
@@ -19,21 +20,27 @@ void USaveGameSubsystem::SaveSessionSaveData(FSessionSaveStruct SaveData, FOnSes
 	if (GlobalFunctionLibrary::GetSaveSystemDebugValue() !=0)
 	{
 		UE_LOG(LogSaveGame, Log, TEXT("Saving SessionData..."));
+		UE_LOG(LogSaveGame, Log, TEXT("    SaveGameObject: %s"), *GetNameSafe(SaveGameObject));
+		UE_LOG(LogSaveGame, Log, TEXT("    CachedSessionSaveData: %s"), *GetNameSafe(CachedSessionSaveData));
+		UE_LOG(LogSaveGame, Log, TEXT("    SlotName: %s"), *SESSION_SLOT_NAME);
+		UE_LOG(LogSaveGame, Log, TEXT("    Slot: %i"), SLOT_INDEX);
 	}
 
 	SaveDelegate.BindUObject(this, &USaveGameSubsystem::OnSaveGameComplete);
-	UGameplayStatics::SaveGameToSlot(CachedSessionSaveData, SessionSlotName, SLOT_INDEX);
+	UGameplayStatics::AsyncSaveGameToSlot(CachedSessionSaveData, SESSION_SLOT_NAME, SLOT_INDEX, SaveDelegate);
+	
 }
 
 void USaveGameSubsystem::OnSaveGameComplete(const FString& SlotName, int32 UserIndex, bool bSuccess)
 {
 	ensureMsgf(bSuccess, TEXT("Failed to save SesssionData"));
 	PendingSessionSavedCallback(bSuccess);
+	SaveDelegate.Unbind();
 }
 
 void USaveGameSubsystem::LoadOrCreateSessionSaveData(FOnSessionDataAcquired Callback)
 {
-	// Store contents of lambda function
+	
 	PendingSessionLoadedCallback = MoveTemp(Callback);
 
 	if (UGameplayStatics::DoesSaveGameExist(SESSION_SLOT_NAME, SLOT_INDEX))
@@ -42,6 +49,10 @@ void USaveGameSubsystem::LoadOrCreateSessionSaveData(FOnSessionDataAcquired Call
 	}
 	else
 	{
+		if (GlobalFunctionLibrary::GetSaveSystemDebugValue() != 0)
+		{
+			UE_LOG(LogSaveGame, Warning, TEXT("Save data not found. Creating save data..."));
+		}
 		CreateSessionSaveData();
 		PendingSessionLoadedCallback(CachedSessionSaveData->SaveData);
 	}

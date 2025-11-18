@@ -18,12 +18,20 @@ UInteractionComponent::UInteractionComponent()
 
 void UInteractionComponent::TryStartInteract()
 {
+	if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
+	{
+		UE_LOG(LogInteraction, Log, TEXT("UInteractionComponent::TryStartInteract"));
+	}
 	Server_TryInteract(InteractableComp.Get());
 }
 
 void UInteractionComponent::Server_TryInteract_Implementation(UInteractableComponent* Interactable)
 {
-	if (Interactable != nullptr)
+	if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
+	{
+		UE_LOG(LogInteraction, Log, TEXT("Server_TryInteract_Implementation"));
+	}
+	if (Interactable != nullptr && GetOwner() != nullptr && GetOwner()->GetLocalRole() == ROLE_Authority)
 	{
 		const bool interactionSuccessful = Interactable->TryToInteract();
 		Client_InteractionResponse(interactionSuccessful);

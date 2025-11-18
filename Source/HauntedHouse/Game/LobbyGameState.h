@@ -8,7 +8,7 @@
 
 
 USTRUCT(BlueprintType)
-struct FPlayerCharactersInfo
+struct FCharacterSelectionDatum
 {
 	GENERATED_BODY()
 
@@ -28,26 +28,23 @@ class HAUNTEDHOUSE_API ALobbyGameState : public AGameStateBase
 	GENERATED_BODY()
 
 
-	UPROPERTY(EditDefaultsOnly, Replicated, ReplicatedUsing=OnRep_PlayersCharacterInfos)
-	TArray<FPlayerCharactersInfo> PlayersCharacterInfos;
+	UPROPERTY(EditDefaultsOnly, Replicated, ReplicatedUsing=OnRep_CharacterSelectionData)
+	TArray<FCharacterSelectionDatum> CharacterSelectionData;
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayersCharacterInfoUpdated OnPlayersCharacterInfoUpdatedDelegate;
 
 protected:
-	void UpdatePlayersCharacterInfos(AInGamePlayerState* PlayerState, UBaseCharacterDataAsset* NewCharacterDataAsset);
-
 	UFUNCTION()
-	void OnRep_PlayersCharacterInfos();
+	void OnRep_CharacterSelectionData();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	TArray<FPlayerCharactersInfo> GetPlayerCharctersInfos() { return PlayersCharacterInfos; }
+	TArray<FCharacterSelectionDatum> GetPlayerCharctersInfos() { return CharacterSelectionData; }
 
 public:
 	void AssignPlayerNextAvailableCharacter(AInGamePlayerState* PlayerState);
-
-	UFUNCTION()
-	void UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState, UBaseCharacterDataAsset* NewCharacterDataAsset);
+	
+	void UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState, const UBaseCharacterDataAsset* NewCharacterDataAsset);
 };

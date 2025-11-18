@@ -5,6 +5,11 @@
 
 #include "Net/UnrealNetwork.h"
 
+FPlayersCharacterInfo UBaseCharacterDataAsset::ConvertToPlayersCharacterInfo() const
+{
+	return FPlayersCharacterInfo(CharacterColor, CharacterMeshData, CharacterAttributeData);
+}
+
 void UBaseCharacterDataAsset::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

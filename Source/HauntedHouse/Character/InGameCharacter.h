@@ -80,7 +80,7 @@ protected:
 	void SetThirdPersonMesh(USkeletalMesh* NewMesh);
 	
 	UFUNCTION(Server, Reliable)
-	void UpdateMeshes_Multicast();
+	void UpdateMeshes_Multicast(FPlayersCharacterInfo CharacterInfo);
 
 	// Updates the camera rotation during interpolation
 	void UpdateCameraRotationInterpolation();
@@ -106,7 +106,7 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	void UpdateMeshes(FCharacterMeshData CharacterMeshData, FColor MeshColor);
+	void UpdateMeshes(const FCharacterMeshData& CharacterMeshData, const FColor& MeshColor);
 
 	void ToggleUsePawnControlRotation(bool newState);
 	

@@ -50,7 +50,7 @@ protected:
 	UCharacterAttributeSet* AttributeSet;
 
 	UPROPERTY(EditDefaultsOnly, Replicated)
-	UBaseCharacterDataAsset* CharacterDataAsset;
+	FPlayersCharacterInfo CharacterInfo;
 	
 	FTimerHandle InitAttributesTimerHandle;
 
@@ -104,26 +104,38 @@ protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-
+	FCharacterAttributeData GetCharacterAttributeData() const;
+	static void PrintAttributeData(const FCharacterAttributeData& Data);
 public:
-
+	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	FString GetPlayerUsername() { return PlayerUsername; }
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	void UpdateDefaultCharacterDataAsset(UBaseCharacterDataAsset* DataAsset);
+	// Updates CharacterInfo based on data asset passed in. Used when a character is 
+	// Only runs on server
+	void UpdateCharacterInfo(const FPlayersCharacterInfo& InCharacterInfo);
 
-	UBaseCharacterDataAsset* GetBaseCharacterDataAsset() { return CharacterDataAsset; }
-
-	void InitializeAttributes(const FCharacterAttributeData CharacterAttributeData) const;
-
-	UFUNCTION(BlueprintCallable)
-	void UpdateCharacterInfoAndMeshes(UBaseCharacterDataAsset* DataAsset);
+	void InitializeAttributes(const FCharacterAttributeData& CharacterAttributeData) const;
+	
+	void UpdateCharacterInfoAndMeshes(const FPlayersCharacterInfo& PlayersCharacterInfo);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void HandleCharacterSelection(UBaseCharacterDataAsset* DataAsset);
+	void Server_HandleCharacterSelection(UBaseCharacterDataAsset* DataAsset);
 
 	TSubclassOf<UHauntedHouseGameplayAbility> GetSprintAbilityClass() { return BaseAbilities.SprintAbility; }
 	TSubclassOf<UHauntedHouseGameplayAbility> GetToggleOptionsAbilityClass() { return BaseAbilities.ToggleOptionsAbility; }
+
+	FPlayersCharacterInfo GetCharacterInfo() const {return CharacterInfo;}
+
+	// Load info from save file then send info to server to replicate down
+	UFUNCTION(Client, Reliable)
+	void Client_LoadPlayerData();
+	UFUNCTION(Server, Reliable)
+	void Server_UpdatePlayerData(FSessionSaveStruct SessionSaveStruct);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdatePlayerData(FSessionSaveStruct SessionSaveStruct);
+
+	void PrintSessionData() const;
 };

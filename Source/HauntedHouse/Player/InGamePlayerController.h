@@ -66,10 +66,8 @@ protected:
 	void SetUIInputMode();
 	UFUNCTION(BlueprintCallable)
 	void SetGameInputMode();
-	
-public:
 
-	
+public:
 	
 	virtual void SetupInputComponent() override;
 

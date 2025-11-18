@@ -22,7 +22,7 @@ public:
 	using FOnSessionDataAcquired = TFunction<void(FSessionSaveStruct SaveData)>;
 	using FOnSessionDataSaved = TFunction<void(bool bWasSuccessful)>;
 
-	void SaveSessionSaveData(FSessionSaveStruct SaveData, FOnSessionDataSaved Callback);
+	void SaveSessionSaveData(const FSessionSaveStruct& SaveData, FOnSessionDataSaved Callback);
 	void LoadOrCreateSessionSaveData(FOnSessionDataAcquired Callback);
 	
 private:
@@ -32,7 +32,6 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<USessionSaveData> CachedSessionSaveData = nullptr;
-	FString SessionSlotName;
 	int32 SessionUserIndex;
 	
 	FAsyncLoadGameFromSlotDelegate LoadDelegate;

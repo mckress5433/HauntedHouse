@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "HauntedHouse/Player/PlayerState/BaseCharacterDataAsset.h"
 #include "GlobalStructs.generated.h"
 
 USTRUCT(BlueprintType)
@@ -37,7 +38,7 @@ struct FCharacterMeshData
 };
 
 USTRUCT(BlueprintType)
-struct FSessionSaveStruct
+struct FPlayersCharacterInfo
 {
 	GENERATED_BODY()
 
@@ -49,4 +50,38 @@ struct FSessionSaveStruct
 	
 	UPROPERTY(EditAnywhere)
 	FCharacterAttributeData CharacterAttributeData;
+
+	FPlayersCharacterInfo()
+	{
+		CharacterColor = FColor::White;
+		CharacterMeshData = FCharacterMeshData();
+		CharacterAttributeData = FCharacterAttributeData();
+	}
+	
+	FPlayersCharacterInfo(FColor InCharacterColor, FCharacterMeshData InCharacterMeshData, FCharacterAttributeData InCharacterAttributeData)
+	: CharacterColor(InCharacterColor), CharacterMeshData(InCharacterMeshData), CharacterAttributeData(InCharacterAttributeData)
+	{
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FSessionSaveStruct
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	FPlayersCharacterInfo CharacterInfo;
+
+	UPROPERTY(EditAnywhere)
+	int SessionId;
+
+	FSessionSaveStruct()
+	{
+		CharacterInfo = FPlayersCharacterInfo();
+		SessionId = 0;
+	}
+	FSessionSaveStruct(FPlayersCharacterInfo InCharacterInfo, int InSessionId)
+	: CharacterInfo(InCharacterInfo), SessionId(InSessionId)
+	{
+	}
 };
