@@ -148,7 +148,9 @@ void UInteractableComponent::CancelInteraction()
 	}
 
 	CurrentHoldTime = 0.0f;
-	if (!bOnlyInteractOnce)
+	OnRep_CurrentHoldTime();
+	
+	if (!bOnlyInteractOnce && bHasBeenTriggered)
 	{
 		bHasBeenTriggered = false;
 		OnRep_HasBeenTriggered();

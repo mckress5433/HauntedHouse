@@ -30,7 +30,8 @@ class HAUNTEDHOUSE_API ALobbyGameState : public AGameStateBase
 
 	UPROPERTY(EditDefaultsOnly, Replicated, ReplicatedUsing=OnRep_CharacterSelectionData)
 	TArray<FCharacterSelectionDatum> CharacterSelectionData;
-	
+
+	// Used to update UI that a change has happened
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayersCharacterInfoUpdated OnPlayersCharacterInfoUpdatedDelegate;
 
@@ -44,6 +45,9 @@ protected:
 	TArray<FCharacterSelectionDatum> GetPlayerCharctersInfos() { return CharacterSelectionData; }
 
 public:
+	// Runs on server only
+	// Iterates through CharacterSelectionData to find the next available character
+	// Then assigns the data to the given PlayerState
 	void AssignPlayerNextAvailableCharacter(AInGamePlayerState* PlayerState);
 	
 	void UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState, const UBaseCharacterDataAsset* NewCharacterDataAsset);

@@ -14,5 +14,6 @@ class HAUNTEDHOUSE_API ALobbyGameMode : public AHauntedHouseGameMode
 {
 	GENERATED_BODY()
 
+	// Used as a notification that a player has joined the game
 	virtual void SetPlayerDefaults(APawn* PlayerPawn) override;
 };

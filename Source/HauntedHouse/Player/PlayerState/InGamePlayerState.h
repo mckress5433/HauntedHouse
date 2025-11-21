@@ -12,9 +12,9 @@
 #include "InGamePlayerState.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentHealthChanged, int32, NewHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, int32, NewHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxHealthChanged, int32, NewMaxHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentStaminaChanged, int32, NewStamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChanged, int32, NewStamina);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxStaminaChanged, int32, NewMaxStamina);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaRegenRateChanged, int32, NewStaminaRegenRate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStrengthChanged, int32, NewStrength);
@@ -49,7 +49,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Replicated)
 	UCharacterAttributeSet* AttributeSet;
 
-	UPROPERTY(EditDefaultsOnly, Replicated)
+	UPROPERTY(EditDefaultsOnly, Replicated, ReplicatedUsing=OnRep_CharacterInfo)
 	FPlayersCharacterInfo CharacterInfo;
 	
 	FTimerHandle InitAttributesTimerHandle;
@@ -63,11 +63,11 @@ protected:
 public:
 
 	UPROPERTY()
-	FOnCurrentHealthChanged OnCurrentHealthChangedDelegate;
+	FOnHealthChanged OnHealthChangedDelegate;
 	UPROPERTY()
 	FOnMaxHealthChanged OnMaxHealthChangedDelegate;
 	UPROPERTY()
-	FOnCurrentStaminaChanged OnCurrentStaminaChangedDelegate;
+	FOnStaminaChanged OnStaminaChangedDelegate;
 	UPROPERTY()
 	FOnMaxStaminaChanged OnMaxStaminaChangedDelegate;
 	UPROPERTY()
@@ -106,6 +106,13 @@ protected:
 	
 	FCharacterAttributeData GetCharacterAttributeData() const;
 	static void PrintAttributeData(const FCharacterAttributeData& Data);
+
+	// Only runs on Autonomous and Simulated proxies
+	// Triggered when CharacterInfo is updated
+	UFUNCTION()
+	void OnRep_CharacterInfo() const;
+	
+	
 public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -113,12 +120,13 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	// Updates CharacterInfo based on data asset passed in. Used when a character is 
-	// Only runs on server
-	void UpdateCharacterInfo(const FPlayersCharacterInfo& InCharacterInfo);
-
+	// Runs on Server ONLY
+	// Handles the initialization of all the character stats.
+	// Typically used for player joining and character select
 	void InitializeAttributes(const FCharacterAttributeData& CharacterAttributeData) const;
-	
+
+	// Runs on Server ONLY
+	// Updates CharacterInfo variable, InitilizesAttributes, and Update character meshes
 	void UpdateCharacterInfoAndMeshes(const FPlayersCharacterInfo& PlayersCharacterInfo);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable)
@@ -134,8 +142,6 @@ public:
 	void Client_LoadPlayerData();
 	UFUNCTION(Server, Reliable)
 	void Server_UpdatePlayerData(FSessionSaveStruct SessionSaveStruct);
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_UpdatePlayerData(FSessionSaveStruct SessionSaveStruct);
 
 	void PrintSessionData() const;
 };

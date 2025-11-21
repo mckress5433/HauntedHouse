@@ -25,48 +25,48 @@ AInGamePlayerState::AInGamePlayerState()
 
 void AInGamePlayerState::InitializeAttributes(const FCharacterAttributeData& CharacterAttributeData) const
 {
-	const UInstantOverrideAllEffect* InitializeAttributesEffect = NewObject<UInstantOverrideAllEffect>(GetTransientPackage(), FName(TEXT("InstanteOverrideAllEffect")));
-	const TSubclassOf<UInstantOverrideAllEffect> DynamicGameplayEffect = InitializeAttributesEffect->GetClass();
-	
-	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	EffectContext.AddSourceObject(this);
-	
-	const FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DynamicGameplayEffect, 1.f, EffectContext);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Health")), CharacterAttributeData.MaxHealth);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.MaxHealth")), CharacterAttributeData.MaxHealth);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Stamina")), CharacterAttributeData.MaxStamina);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.MaxStamina")), CharacterAttributeData.MaxStamina);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.StaminaRegenRate")), CharacterAttributeData.StaminaRegenRate);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Strength")), CharacterAttributeData.BaseStrength);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Speed")), CharacterAttributeData.BaseSpeed);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Intelligence")), CharacterAttributeData.BaseIntelligence);
-	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Sanity")), CharacterAttributeData.BaseSanity);
-	
-	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		const UInstantOverrideAllEffect* InitializeAttributesEffect = NewObject<UInstantOverrideAllEffect>(GetTransientPackage(), FName(TEXT("InstanteOverrideAllEffect")));
+		const TSubclassOf<UInstantOverrideAllEffect> DynamicGameplayEffect = InitializeAttributesEffect->GetClass();
+		
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+		
+		const FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DynamicGameplayEffect, 1.f, EffectContext);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Health")), CharacterAttributeData.MaxHealth);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.MaxHealth")), CharacterAttributeData.MaxHealth);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Stamina")), CharacterAttributeData.MaxStamina);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.MaxStamina")), CharacterAttributeData.MaxStamina);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.StaminaRegenRate")), CharacterAttributeData.StaminaRegenRate);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Strength")), CharacterAttributeData.BaseStrength);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Speed")), CharacterAttributeData.BaseSpeed);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Intelligence")), CharacterAttributeData.BaseIntelligence);
+		SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("SetByCaller.Sanity")), CharacterAttributeData.BaseSanity);
+		
+		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
 }
 
 void AInGamePlayerState::UpdateCharacterInfoAndMeshes(const FPlayersCharacterInfo& PlayersCharacterInfo)
 {
-	CharacterInfo = PlayersCharacterInfo;
 	if (GetLocalRole() == ROLE_Authority && AbilitySystemComponent != nullptr)
 	{
+		// Update the CharacterInfo struct and call modify to mark the struct as dirty to force a replication update
+		CharacterInfo = PlayersCharacterInfo;
+		Modify();
+	
 		const FCharacterAttributeData CharacterAttributeData = CharacterInfo.CharacterAttributeData;
 		InitializeAttributes(CharacterAttributeData);
-	}
-
-	if(auto character = Cast<AInGameCharacter>(GetPawn()); character != nullptr)
-	{
-		character->UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
+	
+		if(auto character = Cast<AInGameCharacter>(GetPawn()); character != nullptr)
+		{
+			character->UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
+		}
 	}
 }
 
 void AInGamePlayerState::Server_UpdatePlayerData_Implementation(FSessionSaveStruct SessionSaveStruct)
-{
-	UpdateCharacterInfoAndMeshes(SessionSaveStruct.CharacterInfo);
-	Multicast_UpdatePlayerData(SessionSaveStruct);
-}
-
-void AInGamePlayerState::Multicast_UpdatePlayerData_Implementation(FSessionSaveStruct SessionSaveStruct)
 {
 	UpdateCharacterInfoAndMeshes(SessionSaveStruct.CharacterInfo);
 }
@@ -91,7 +91,7 @@ void AInGamePlayerState::HealthChanged(const FOnAttributeChangeData& Data)
 {
 	if(Data.Attribute == UCharacterAttributeSet::GetHealthAttribute())
 	{
-		OnCurrentHealthChangedDelegate.Broadcast(static_cast<float>(Data.NewValue));
+		OnHealthChangedDelegate.Broadcast(static_cast<float>(Data.NewValue));
 	}
 }
 
@@ -105,7 +105,7 @@ void AInGamePlayerState::MaxHealthChanged(const FOnAttributeChangeData& Data)
 
 void AInGamePlayerState::StaminaChanged(const FOnAttributeChangeData& Data)
 {
-	OnCurrentStaminaChangedDelegate.Broadcast(static_cast<float>(Data.NewValue));
+	OnStaminaChangedDelegate.Broadcast(static_cast<float>(Data.NewValue));
 }
 
 void AInGamePlayerState::MaxStaminaChanged(const FOnAttributeChangeData& Data)
@@ -192,6 +192,8 @@ void AInGamePlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, CharacterInfo);
+	DOREPLIFETIME(ThisClass, AbilitySystemComponent);
+	DOREPLIFETIME(ThisClass, AttributeSet);
 }
 
 FCharacterAttributeData AInGamePlayerState::GetCharacterAttributeData() const
@@ -220,25 +222,21 @@ void AInGamePlayerState::PrintAttributeData(const FCharacterAttributeData& Attri
 	UE_LOG(LogAttributes, Log, TEXT("    StaminaRegenRate: %f"), AttributeData.StaminaRegenRate);
 }
 
+void AInGamePlayerState::OnRep_CharacterInfo() const
+{
+	if (GetLocalRole() != ROLE_Authority)
+	{
+		// Update the character meshes
+		if(auto character = Cast<AInGameCharacter>(GetPawn()); character != nullptr)
+		{
+			character->UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
+		}
+	}
+}
+
 UAbilitySystemComponent* AInGamePlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
-}
-
-void AInGamePlayerState::UpdateCharacterInfo(const FPlayersCharacterInfo& InCharacterInfo)
-{
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		CharacterInfo = InCharacterInfo;
-		if(APlayerController* PC = GetPlayerController(); PC != nullptr)
-		{
-			if(HasAuthority() && !PC->IsLocalController() && AbilitySystemComponent != nullptr)
-			{
-				const FCharacterAttributeData CharacterAttributeData = CharacterInfo.CharacterAttributeData;
-				InitializeAttributes(CharacterAttributeData);
-			}
-		}
-	}
 }
 
 void AInGamePlayerState::Client_LoadPlayerData_Implementation()

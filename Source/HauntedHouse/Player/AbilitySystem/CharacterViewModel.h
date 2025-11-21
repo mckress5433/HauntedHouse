@@ -18,12 +18,12 @@ class HAUNTEDHOUSE_API UCharacterViewModel : public UMVVMViewModelBase
 
 protected:
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
-	int32 CurrentHealth;
+	int32 Health;
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
 	int32 MaxHealth;
 
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
-	int32 CurrentStamina;
+	int32 Stamina;
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
 	int32 MaxStamina;
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
@@ -37,47 +37,33 @@ protected:
 	int32 Intelligence;
 	UPROPERTY(BlueprintReadWrite, FieldNotify, Setter, Getter)
 	int32 Sanity;
-public:
-
-private:
-protected:
-
-	UFUNCTION()
-	void OnHealthChanged(int32 NewCurrentHealth);
-	UFUNCTION()
-	void OnMaxHealthChanged(int32 NewMaxHealth);
-	UFUNCTION()
-	void OnStaminaChanged(int32 NewCurrentStamina);
-	UFUNCTION()
-	void OnMaxStaminaChanged(int32 NewMaxStamina);
-	UFUNCTION()
-	void OnStaminaRegenRateChanged(int32 NewStaminaRegenRate);
-	UFUNCTION()
-	void OnStrengthChanged(int32 NewStrength);
-	UFUNCTION()
-	void OnSpeedChanged(int32 NewSpeed);
-	UFUNCTION()
-	void OnIntelligenceChanged(int32 NewIntelligence);
-	UFUNCTION()
-	void OnSanityChanged(int32 NewSanity);
 	
 public:
 
 	void SetupListeners();
-	
-	void SetCurrentHealth(int32 NewCurrentHealth);
+
+	UFUNCTION()
+	void SetHealth(const int32 NewHealth);
+	UFUNCTION()
 	void SetMaxHealth(int32 NewMaxHealth);
-	void SetCurrentStamina(int32 NewCurrentStamina);
+	UFUNCTION()
+	void SetStamina(const int32 NewStamina);
+	UFUNCTION()
 	void SetMaxStamina(int32 NewMaxStamina);
+	UFUNCTION()
 	void SetStaminaRegenRate(int32 NewStaminaRegenRate);
+	UFUNCTION()
 	void SetStrength(int32 NewStrength);
+	UFUNCTION()
 	void SetSpeed(int32 NewSpeed);
+	UFUNCTION()
 	void SetIntelligence(int32 NewIntelligence);
+	UFUNCTION()
 	void SetSanity(int32 NewSanity);
 
-	int32 GetCurrentHealth() const { return CurrentHealth; }
+	int32 GetHealth() const { return Health; }
 	int32 GetMaxHealth() const { return MaxHealth; }
-	int32 GetCurrentStamina() const { return CurrentStamina; }
+	int32 GetStamina() const { return Stamina; }
 	int32 GetMaxStamina() const { return MaxStamina; }
 	int32 GetStaminaRegenRate() const { return StaminaRegenRate; }
 	int32 GetStrength() const { return Strength; }

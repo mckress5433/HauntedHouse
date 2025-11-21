@@ -28,7 +28,7 @@ void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 void ALobbyGameState::AssignPlayerNextAvailableCharacter(AInGamePlayerState* PlayerState)
 {
-	if(PlayerState == nullptr) return;
+	if(PlayerState != nullptr && GetLocalRole() != ROLE_Authority) return;
 
 	// Have to iterate for pointer to be valid apparently 
 	for(int i=0; i<CharacterSelectionData.Num(); i++)
@@ -37,8 +37,7 @@ void ALobbyGameState::AssignPlayerNextAvailableCharacter(AInGamePlayerState* Pla
 		{
 			CharacterSelectionData[i].PlayerState = PlayerState;
 			FPlayersCharacterInfo CharacterInfo = CharacterSelectionData[i].CharacterDataAsset->ConvertToPlayersCharacterInfo();
-			CharacterSelectionData[i].PlayerState->UpdateCharacterInfo(CharacterInfo);
-			PlayerState->UpdateCharacterInfoAndMeshes(CharacterInfo);
+			CharacterSelectionData[i].PlayerState->UpdateCharacterInfoAndMeshes(CharacterInfo);
 			break;
 		}
 	}

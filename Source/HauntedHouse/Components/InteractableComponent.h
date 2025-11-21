@@ -99,4 +99,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool GetHasBeenTriggered() { return bHasBeenTriggered; }
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool GetOnlyInteractOnce() { return bOnlyInteractOnce; }
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetCurrentHoldTime() { return CurrentHoldTime; }
 };

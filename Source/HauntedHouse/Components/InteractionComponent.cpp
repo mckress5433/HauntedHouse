@@ -93,15 +93,15 @@ void UInteractionComponent::CancelInteraction()
 		}
 		
 		Server_CancelInteraction(InteractableComp.Get());
-		
-		if (OnHUDInteractionEnd.IsBound())
-		{
-			OnHUDInteractionEnd.Execute();
-		}
 	}
 	else if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
 	{
 		UE_LOG(LogInteraction, Log, TEXT("Cannot cancel because InteractableComponent is not valid!"));
+	}
+
+	if (OnHUDInteractionEnd.IsBound())
+	{
+		OnHUDInteractionEnd.Execute();
 	}
 }
 

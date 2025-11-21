@@ -106,6 +106,7 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
+	// Updates the character meshes and materials. 
 	void UpdateMeshes(const FCharacterMeshData& CharacterMeshData, const FColor& MeshColor);
 
 	void ToggleUsePawnControlRotation(bool newState);

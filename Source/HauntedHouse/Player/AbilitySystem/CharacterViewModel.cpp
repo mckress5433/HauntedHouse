@@ -15,51 +15,6 @@ UCharacterViewModel::UCharacterViewModel()
 	}
 }
 
-void UCharacterViewModel::OnHealthChanged(int32 NewCurrentHealth)
-{
-	SetCurrentHealth(NewCurrentHealth);
-}
-
-void UCharacterViewModel::OnMaxHealthChanged(int32 NewMaxHealth)
-{
-	SetMaxHealth(NewMaxHealth);
-}
-
-void UCharacterViewModel::OnStaminaChanged(int32 NewCurrentStamina)
-{
-	SetCurrentStamina(NewCurrentStamina);
-}
-
-void UCharacterViewModel::OnMaxStaminaChanged(int32 NewMaxStamina)
-{
-	SetMaxStamina(NewMaxStamina);
-}
-
-void UCharacterViewModel::OnStaminaRegenRateChanged(int32 NewStaminaRegenRate)
-{
-	SetStaminaRegenRate(NewStaminaRegenRate);
-}
-
-void UCharacterViewModel::OnStrengthChanged(int32 NewStrength)
-{
-	SetStrength(NewStrength);
-}
-
-void UCharacterViewModel::OnSpeedChanged(int32 NewSpeed)
-{
-	SetSpeed(NewSpeed);
-}
-
-void UCharacterViewModel::OnIntelligenceChanged(int32 NewIntelligence)
-{
-	SetIntelligence(NewIntelligence);
-}
-
-void UCharacterViewModel::OnSanityChanged(int32 NewSanity)
-{
-	SetSanity(NewSanity);
-}
-
 void UCharacterViewModel::SetupListeners()
 {
 	if(UWorld* world = GetWorld(); world != nullptr)
@@ -68,22 +23,21 @@ void UCharacterViewModel::SetupListeners()
 		{
 			if(auto playerState = playerController->GetPlayerState<AInGamePlayerState>(); playerState != nullptr)
 			{
-				playerState->OnCurrentHealthChangedDelegate.AddDynamic(this, &ThisClass::OnHealthChanged);
-				playerState->OnMaxHealthChangedDelegate.AddDynamic(this, &ThisClass::OnMaxHealthChanged);
-				playerState->OnCurrentStaminaChangedDelegate.AddDynamic(this, &ThisClass::OnStaminaChanged);
-				playerState->OnMaxStaminaChangedDelegate.AddDynamic(this, &ThisClass::OnMaxStaminaChanged);
-				playerState->OnStaminaRegenRateChangedDelegate.AddDynamic(this, &ThisClass::OnStaminaRegenRateChanged);
-				playerState->OnStrengthChangedDelegate.AddDynamic(this, &ThisClass::OnStrengthChanged);
-				playerState->OnSpeedChangedDelegate.AddDynamic(this, &ThisClass::OnSpeedChanged);
-				playerState->OnIntelligenceChangedDelegate.AddDynamic(this, &ThisClass::OnIntelligenceChanged);
-				playerState->OnSanityChangedDelegate.AddDynamic(this, &ThisClass::OnSanityChanged);
+				playerState->OnHealthChangedDelegate.AddDynamic(this, &ThisClass::SetHealth);
+				playerState->OnMaxHealthChangedDelegate.AddDynamic(this, &ThisClass::SetMaxHealth);
+				playerState->OnStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetStamina);
+				playerState->OnMaxStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetMaxStamina);
+				playerState->OnStaminaRegenRateChangedDelegate.AddDynamic(this, &ThisClass::SetStaminaRegenRate);
+				playerState->OnStrengthChangedDelegate.AddDynamic(this, &ThisClass::SetStrength);
+				playerState->OnSpeedChangedDelegate.AddDynamic(this, &ThisClass::SetSpeed);
+				playerState->OnIntelligenceChangedDelegate.AddDynamic(this, &ThisClass::SetIntelligence);
+				playerState->OnSanityChangedDelegate.AddDynamic(this, &ThisClass::SetSanity);
 				
 				bool wasFound = false;
-				SetCurrentHealth(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetHealthAttribute(), wasFound));
+				SetHealth(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetHealthAttribute(), wasFound));
 				SetMaxHealth(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxHealthAttribute(), wasFound));
-				SetCurrentStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaAttribute(), wasFound));
+				SetStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaAttribute(), wasFound));
 				SetMaxStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxStaminaAttribute(), wasFound));
-				SetCurrentStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaAttribute(), wasFound));
 				SetStaminaRegenRate(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaRegenRateAttribute(), wasFound));
 				SetStrength(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStrengthAttribute(), wasFound));
 				SetSpeed(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetSpeedAttribute(), wasFound));
@@ -94,9 +48,9 @@ void UCharacterViewModel::SetupListeners()
 	}
 }
 
-void UCharacterViewModel::SetCurrentHealth(int32 NewCurrentHealth)
+void UCharacterViewModel::SetHealth(int32 NewCurrentHealth)
 {
-	if (UE_MVVM_SET_PROPERTY_VALUE(CurrentHealth, NewCurrentHealth))
+	if (Health != NewCurrentHealth)
 	{
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetHealthText);
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetHealthPercent);
@@ -112,9 +66,9 @@ void UCharacterViewModel::SetMaxHealth(int32 NewMaxHealth)
 	}
 }
 
-void UCharacterViewModel::SetCurrentStamina(int32 NewCurrentStamina)
+void UCharacterViewModel::SetStamina(int32 NewCurrentStamina)
 {
-	if(UE_MVVM_SET_PROPERTY_VALUE(CurrentStamina, NewCurrentStamina))
+	if(UE_MVVM_SET_PROPERTY_VALUE(Stamina, NewCurrentStamina))
 	{
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetStaminaText);
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetStaminaPercent);
@@ -174,7 +128,7 @@ float UCharacterViewModel::GetHealthPercent() const
 {
 	if(MaxHealth != 0)
 	{
-		return static_cast<float>(CurrentHealth) / static_cast<float>(MaxHealth);
+		return static_cast<float>(Health) / static_cast<float>(MaxHealth);
 	}
 	else
 	{
@@ -184,14 +138,14 @@ float UCharacterViewModel::GetHealthPercent() const
 
 FString UCharacterViewModel::GetHealthText() const
 {
-	return FString::Printf(TEXT("%d/%d"), CurrentHealth, MaxHealth);
+	return FString::Printf(TEXT("%d/%d"), Health, MaxHealth);
 }
 
 float UCharacterViewModel::GetStaminaPercent() const
 {
 	if(MaxStamina != 0)
 	{
-		return  static_cast<float>(CurrentStamina) / static_cast<float>(MaxStamina);
+		return  static_cast<float>(Stamina) / static_cast<float>(MaxStamina);
 	}
 	else
 	{
@@ -201,7 +155,7 @@ float UCharacterViewModel::GetStaminaPercent() const
 
 FString UCharacterViewModel::GetStaminaText() const
 {
-	return FString::Printf(TEXT("%d/%d"), CurrentStamina, MaxStamina);
+	return FString::Printf(TEXT("%d/%d"), Stamina, MaxStamina);
 }
 
 FString UCharacterViewModel::GetStaminaRegenRateText() const
