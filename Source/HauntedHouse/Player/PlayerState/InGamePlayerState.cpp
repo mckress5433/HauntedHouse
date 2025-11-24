@@ -79,13 +79,6 @@ void AInGamePlayerState::PrintSessionData() const
 	PrintAttributeData(CharacterInfo.CharacterAttributeData);
 }
 
-void AInGamePlayerState::Server_HandleCharacterSelection_Implementation(UBaseCharacterDataAsset* DataAsset)
-{
-	if(auto GS = GetWorld()->GetGameState<ALobbyGameState>(); GS != nullptr)
-	{
-		GS->UpdatePlayerCharactersInfos(this, DataAsset);
-	}
-}
 
 void AInGamePlayerState::HealthChanged(const FOnAttributeChangeData& Data)
 {
@@ -251,12 +244,7 @@ void AInGamePlayerState::Client_LoadPlayerData_Implementation()
 		{
 			saveSystem->LoadOrCreateSessionSaveData([this](const FSessionSaveStruct& SessionData)
 			{
-				CharacterInfo = SessionData.CharacterInfo;
-				UpdateCharacterInfoAndMeshes(CharacterInfo);
-				if (GetLocalRole() != ROLE_Authority)
-				{
-					Server_UpdatePlayerData(SessionData);
-				}
+				Server_UpdatePlayerData(SessionData);
 				
 				if (GlobalFunctionLibrary::GetSaveSystemDebugValue() != 0)
 				{

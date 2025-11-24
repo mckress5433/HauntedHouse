@@ -6,6 +6,11 @@
 #include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 #include "Net/UnrealNetwork.h"
 
+ALobbyGameState::ALobbyGameState()
+{
+	bReplicates = true;
+}
+
 void ALobbyGameState::OnRep_CharacterSelectionData()
 {
 	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
@@ -44,7 +49,7 @@ void ALobbyGameState::AssignPlayerNextAvailableCharacter(AInGamePlayerState* Pla
 	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
 }
 
-void ALobbyGameState::UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerState,
+void ALobbyGameState::Server_UpdatePlayerCharactersInfos_Implementation(AInGamePlayerState* PlayerState,
 	const UBaseCharacterDataAsset* NewCharacterDataAsset)
 {
 	TArray<FCharacterSelectionDatum> tmpArray = CharacterSelectionData;
@@ -62,7 +67,10 @@ void ALobbyGameState::UpdatePlayerCharactersInfos(AInGamePlayerState* PlayerStat
 		}
 	}
 
-	CharacterSelectionData = tmpArray;
-	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
 	PlayerState->UpdateCharacterInfoAndMeshes(NewCharacterDataAsset->ConvertToPlayersCharacterInfo());
+	
+	CharacterSelectionData = tmpArray;
+	Modify();
+	
+	OnPlayersCharacterInfoUpdatedDelegate.Broadcast();
 }

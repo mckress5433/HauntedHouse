@@ -17,15 +17,6 @@ AInGameCharacter::AInGameCharacter()
 void AInGameCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if(GetLocalRole() == ROLE_Authority && IsLocallyControlled())
-	{
-		if (auto PS = GetPlayerState<AInGamePlayerState>(); PS != nullptr)
-		{
-			FPlayersCharacterInfo CharacterInfo = PS->GetCharacterInfo();
-			UpdateMeshes(CharacterInfo.CharacterMeshData, CharacterInfo.CharacterColor);
-		}
-	}
 		
 	if (InteractionComponent != nullptr && Controller != nullptr && Controller->IsLocalController())
 	{
@@ -135,7 +126,7 @@ void AInGameCharacter::UpdateMeshes(const FCharacterMeshData& CharacterMeshData,
 
 	if(FPSkelMesh == nullptr || TPSkelMesh == nullptr)
 	{
-		UE_LOG(LogCharacter, Error, TEXT("First Person or ThirdPerson mesh is invalid"));
+		UE_LOG(LogCharacter, Warning, TEXT("First Person or ThirdPerson mesh is invalid"));
 		return;
 	}
 	

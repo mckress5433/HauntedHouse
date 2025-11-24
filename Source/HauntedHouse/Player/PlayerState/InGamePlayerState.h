@@ -129,9 +129,6 @@ public:
 	// Updates CharacterInfo variable, InitilizesAttributes, and Update character meshes
 	void UpdateCharacterInfoAndMeshes(const FPlayersCharacterInfo& PlayersCharacterInfo);
 
-	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void Server_HandleCharacterSelection(UBaseCharacterDataAsset* DataAsset);
-
 	TSubclassOf<UHauntedHouseGameplayAbility> GetSprintAbilityClass() { return BaseAbilities.SprintAbility; }
 	TSubclassOf<UHauntedHouseGameplayAbility> GetToggleOptionsAbilityClass() { return BaseAbilities.ToggleOptionsAbility; }
 
