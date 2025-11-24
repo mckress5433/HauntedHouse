@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "BasePlayerController.h"
-#include "EnhancedInputSubsystems.h"
 #include "InGamePlayerController.generated.h"
 
 /**
@@ -17,13 +16,6 @@ class HAUNTEDHOUSE_API AInGamePlayerController : public ABasePlayerController
 
 	
 protected:
-	// Input Mapping Context and Input Actions
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputMappingContext* DefaultMappingContext;
-
-	// Input Mapping Context for in editor
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputMappingContext* EditorMappingContext;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* MoveAction;
@@ -36,9 +28,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* ToggleOptionsMenuAction;
-
-	UPROPERTY(EditDefaultsOnly, Category="Input")
-	UInputAction* UIInteractionAction;
 
 public:
 	
@@ -60,7 +49,7 @@ protected:
 	// Event to display pause menu
 	void ToggleOptionsMenu();
 	
-	void OnUIInteraction();
+	virtual void OnUIInteraction() override;
 
 	UFUNCTION(BlueprintCallable)
 	void SetUIInputMode();

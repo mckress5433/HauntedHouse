@@ -38,23 +38,6 @@ void UMenu::MenuSetup(int32 numPublicConnections, FString matchType, FString lob
 	NumPublicConnections = numPublicConnections;
 	MatchType = matchType;
 	PathToLobby = FString::Printf(TEXT("%s?listen"), *lobbyPath);
-	
-	AddToViewport();
-	SetVisibility(ESlateVisibility::Visible);
-
-	UWorld* World = GetWorld();
-	if(World != nullptr)
-	{
-		APlayerController* PlayerController = World->GetFirstPlayerController();
-		if(PlayerController != nullptr)
-		{
-			FInputModeUIOnly InputModeData;
-			InputModeData.SetWidgetToFocus(TakeWidget());
-			InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			PlayerController->SetInputMode(InputModeData);
-			PlayerController->SetShowMouseCursor(true);
-		}
-	}
 
 	UGameInstance* GameInstance = GetGameInstance();
 	if(GameInstance != nullptr)

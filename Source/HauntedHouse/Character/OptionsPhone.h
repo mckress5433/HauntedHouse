@@ -34,4 +34,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UUserWidget* GetWidget() { return Widget->GetWidget(); }
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetWidgetClass(TSubclassOf<UUserWidget> WidgetClass);
 };

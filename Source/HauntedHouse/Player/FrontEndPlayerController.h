@@ -13,5 +13,6 @@ UCLASS()
 class HAUNTEDHOUSE_API AFrontEndPlayerController : public ABasePlayerController
 {
 	GENERATED_BODY()
-	
+
+	virtual void BeginPlay() override;
 };

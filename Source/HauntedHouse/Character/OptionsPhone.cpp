@@ -26,13 +26,16 @@ AOptionsPhone::AOptionsPhone()
 void AOptionsPhone::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (auto character = Cast<AInGameCharacter>(GetOwner()); character != nullptr)
+	UE_LOG(LogTemp, Warning, TEXT("BeginPlay phone"));
+	if (auto character = Cast<ABaseCharacter>(GetOwner()); character != nullptr)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Character is %s"), *character->GetName());
 		if (AController* controller = character->GetController(); controller != nullptr)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Controller valid"));
 			if (controller->IsLocalPlayerController())
 			{
+				UE_LOG(LogTemp, Warning, TEXT("Pls Start"));
 				character->StartCameraRotationInterpolation(this, 0.5f);
 			}
 		}
@@ -46,3 +49,8 @@ void AOptionsPhone::Tick(float DeltaTime)
 
 }
 
+void AOptionsPhone::SetWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
+{
+	Widget->SetWidgetClass(WidgetClass);
+	Widget->InitWidget();
+}

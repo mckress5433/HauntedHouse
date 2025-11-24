@@ -3,8 +3,10 @@
 
 #include "BasePlayerController.h"
 
+#include "EnhancedInputComponent.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
+#include "HauntedHouse/Character/BaseCharacter.h"
 #include "Online/OnlineSessionNames.h"
 
 ABasePlayerController::ABasePlayerController():
@@ -16,6 +18,21 @@ ABasePlayerController::ABasePlayerController():
 	if(OnlineSubsystem != nullptr)
 	{
 		OnlineSessionInterface = OnlineSubsystem->GetSessionInterface();
+	}
+}
+
+void ABasePlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	// Add Input Mapping Context
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem
+		= ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+	{
+#if UE_EDITOR
+		Subsystem->AddMappingContext(EditorMappingContext, 0);
+#else
+		Subsystem->AddMappingContext(DefaultMappingContext, 0);
+#endif
 	}
 }
 
@@ -122,5 +139,24 @@ void ABasePlayerController::OnJoinSessionComplete(FName SessionName, EOnJoinSess
 	if(playerController != nullptr)
 	{
 		playerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+	}
+}
+
+void ABasePlayerController::OnUIInteraction()
+{
+	if (auto inGameCharacter = Cast<ABaseCharacter>(GetPawn()); inGameCharacter != nullptr)
+	{
+		inGameCharacter->HandleUIInteractionInput();
+	}
+}
+
+void ABasePlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	// Ensure the input component is an EnhancedInputComponent
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		EnhancedInputComponent->BindAction(UIInteractionAction, ETriggerEvent::Triggered, this, &ThisClass::OnUIInteraction);
 	}
 }

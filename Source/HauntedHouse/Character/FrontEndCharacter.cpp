@@ -3,6 +3,8 @@
 
 #include "FrontEndCharacter.h"
 
+#include "HauntedHouse/Player/FrontEndPlayerController.h"
+
 // Sets default values
 AFrontEndCharacter::AFrontEndCharacter()
 {
@@ -15,6 +17,7 @@ AFrontEndCharacter::AFrontEndCharacter()
 void AFrontEndCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	
 }
 

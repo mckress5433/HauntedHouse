@@ -9,18 +9,7 @@
 void AInGamePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Add Input Mapping Context
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem
-		= ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
-	{
-#if UE_EDITOR
-		Subsystem->AddMappingContext(EditorMappingContext, 0);
-#else
-		Subsystem->AddMappingContext(DefaultMappingContext, 0);
-#endif
-		
-	}
+	
 }
 
 void AInGamePlayerController::Move(const FInputActionValue& Value)
@@ -163,8 +152,6 @@ void AInGamePlayerController::SetupInputComponent()
 
 		// Bind Options menu toggling
 		EnhancedInputComponent->BindAction(ToggleOptionsMenuAction, ETriggerEvent::Started, this, &ThisClass::ToggleOptionsMenu);
-
-		EnhancedInputComponent->BindAction(UIInteractionAction, ETriggerEvent::Triggered, this, &ThisClass::OnUIInteraction);
 	}
 }
 

@@ -23,34 +23,37 @@ void UCharacterViewModel::SetupListeners()
 		{
 			if(auto playerState = playerController->GetPlayerState<AInGamePlayerState>(); playerState != nullptr)
 			{
-				playerState->OnHealthChangedDelegate.AddDynamic(this, &ThisClass::SetHealth);
-				playerState->OnMaxHealthChangedDelegate.AddDynamic(this, &ThisClass::SetMaxHealth);
-				playerState->OnStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetStamina);
-				playerState->OnMaxStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetMaxStamina);
-				playerState->OnStaminaRegenRateChangedDelegate.AddDynamic(this, &ThisClass::SetStaminaRegenRate);
-				playerState->OnStrengthChangedDelegate.AddDynamic(this, &ThisClass::SetStrength);
-				playerState->OnSpeedChangedDelegate.AddDynamic(this, &ThisClass::SetSpeed);
-				playerState->OnIntelligenceChangedDelegate.AddDynamic(this, &ThisClass::SetIntelligence);
-				playerState->OnSanityChangedDelegate.AddDynamic(this, &ThisClass::SetSanity);
+				if (auto abilitySystemComponent = playerState->GetAbilitySystemComponent(); abilitySystemComponent != nullptr)
+				{
+					playerState->OnHealthChangedDelegate.AddDynamic(this, &ThisClass::SetHealth);
+					playerState->OnMaxHealthChangedDelegate.AddDynamic(this, &ThisClass::SetMaxHealth);
+					playerState->OnStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetStamina);
+					playerState->OnMaxStaminaChangedDelegate.AddDynamic(this, &ThisClass::SetMaxStamina);
+					playerState->OnStaminaRegenRateChangedDelegate.AddDynamic(this, &ThisClass::SetStaminaRegenRate);
+					playerState->OnStrengthChangedDelegate.AddDynamic(this, &ThisClass::SetStrength);
+					playerState->OnSpeedChangedDelegate.AddDynamic(this, &ThisClass::SetSpeed);
+					playerState->OnIntelligenceChangedDelegate.AddDynamic(this, &ThisClass::SetIntelligence);
+					playerState->OnSanityChangedDelegate.AddDynamic(this, &ThisClass::SetSanity);
 				
-				bool wasFound = false;
-				SetHealth(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetHealthAttribute(), wasFound));
-				SetMaxHealth(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxHealthAttribute(), wasFound));
-				SetStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaAttribute(), wasFound));
-				SetMaxStamina(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxStaminaAttribute(), wasFound));
-				SetStaminaRegenRate(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaRegenRateAttribute(), wasFound));
-				SetStrength(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetStrengthAttribute(), wasFound));
-				SetSpeed(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetSpeedAttribute(), wasFound));
-				SetIntelligence(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetIntelligenceAttribute(), wasFound));
-				SetSanity(playerState->GetAbilitySystemComponent()->GetGameplayAttributeValue(UCharacterAttributeSet::GetSanityAttribute(), wasFound));
+					bool wasFound = false;
+					SetHealth(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetHealthAttribute(), wasFound));
+					SetMaxHealth(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxHealthAttribute(), wasFound));
+					SetStamina(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaAttribute(), wasFound));
+					SetMaxStamina(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetMaxStaminaAttribute(), wasFound));
+					SetStaminaRegenRate(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetStaminaRegenRateAttribute(), wasFound));
+					SetStrength(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetStrengthAttribute(), wasFound));
+					SetSpeed(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetSpeedAttribute(), wasFound));
+					SetIntelligence(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetIntelligenceAttribute(), wasFound));
+					SetSanity(abilitySystemComponent->GetGameplayAttributeValue(UCharacterAttributeSet::GetSanityAttribute(), wasFound));
+				}
 			}
 		}
 	}
 }
 
-void UCharacterViewModel::SetHealth(int32 NewCurrentHealth)
+void UCharacterViewModel::SetHealth(int32 NewHealth)
 {
-	if (Health != NewCurrentHealth)
+	if (UE_MVVM_SET_PROPERTY_VALUE(Health, NewHealth))
 	{
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetHealthText);
 		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetHealthPercent);
