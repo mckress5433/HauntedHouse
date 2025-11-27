@@ -5,7 +5,6 @@
 #include "OnlineSubsystem.h"
 #include "HauntedHouse/HauntedHouse.h"
 #include "HauntedHouse/Character/InGameCharacter.h"
-#include "HauntedHouse/Game/LobbyGameState.h"
 #include "HauntedHouse/Game/SaveSystem/SaveGameSubsystem.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "HauntedHouse/GameplayEffects/InstantOverrideAllEffect.h"

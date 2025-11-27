@@ -22,7 +22,7 @@ void UInteractionComponent::TryStartInteract()
 	{
 		UE_LOG(LogInteraction, Log, TEXT("UInteractionComponent::TryStartInteract"));
 	}
-	Server_TryInteract(InteractableComp.Get());
+	Server_TryInteract(InteractableComp);
 }
 
 void UInteractionComponent::Server_TryInteract_Implementation(UInteractableComponent* Interactable)
@@ -48,17 +48,16 @@ void UInteractionComponent::Client_InteractionResponse_Implementation(bool bInte
 	if (bInteractionSuccessful)
 	{
 		// Start Interaction
-		if (InteractableComp.IsValid())
+		if (InteractableComp != nullptr)
 		{
 			if (!InteractableComp->OnUpdateInteractionProgressEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteractionProgress))
 			{
-				InteractableComp->OnUpdateInteractionProgressEvent.AddDynamic(this, &UInteractionComponent::HandleInteractionProgress);
+				InteractableComp->OnUpdateInteractionProgressEvent.AddUniqueDynamic(this, &UInteractionComponent::HandleInteractionProgress);
 			}
 			if (!InteractableComp->OnInteractEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteract))
 			{
 				InteractableComp->OnInteractEvent.AddDynamic(this, &UInteractionComponent::HandleInteract);
 			}
-			InteractableComp->StartInteraction();
 		}
 		bIsInteracting = true;
 		
@@ -84,12 +83,16 @@ void UInteractionComponent::CancelInteraction()
 		UE_LOG(LogInteraction, Log, TEXT("CancelInteraction called"));
 	}
 	
-	if (InteractableComp.IsValid())
+	if (InteractableComp != nullptr)
 	{
 		bIsInteracting = false;
 		if (InteractableComp->OnInteractEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteract))
 		{
 			InteractableComp->OnInteractEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteract);
+		}
+		if (InteractableComp->OnUpdateInteractionProgressEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteractionProgress))
+		{
+			InteractableComp->OnUpdateInteractionProgressEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteractionProgress);
 		}
 		
 		Server_CancelInteraction(InteractableComp.Get());
@@ -123,17 +126,17 @@ void UInteractionComponent::StartTimer()
 
 void UInteractionComponent::InteractionTick()
 {
-	TWeakObjectPtr<UInteractableComponent> foundInteractable = MakeWeakObjectPtr<UInteractableComponent>(CheckForInteractable());
+	UInteractableComponent* foundInteractable = CheckForInteractable();
 	
-	if (foundInteractable.IsValid())
+	if (foundInteractable != nullptr)
 	{
 		if (OnHUDHoverBegin.IsBound())
 		{
 			OnHUDHoverBegin.Execute();
 		}
 
-		bool bIsInteractableValid = InteractableComp.IsValid();
-		if (!bIsInteractableValid || foundInteractable.Get() != InteractableComp.Get())
+		bool bIsInteractableValid = InteractableComp != nullptr;
+		if (!bIsInteractableValid || foundInteractable != InteractableComp)
 		{
 			if (bIsInteractableValid)
 			{
@@ -143,7 +146,7 @@ void UInteractionComponent::InteractionTick()
 			InteractableComp = foundInteractable;
 		}
 	}
-	else if (InteractableComp.IsValid())
+	else if (InteractableComp != nullptr)
 	{
 		if (bIsInteracting)
 		{
@@ -151,7 +154,7 @@ void UInteractionComponent::InteractionTick()
 		}
 		
 		InteractableComp->EndHover();
-		InteractableComp.Reset();
+		InteractableComp = nullptr;
 		
 		if (OnHUDHoverEnd.IsBound())
 		{
@@ -298,12 +301,18 @@ void UInteractionComponent::HandleInteractionProgress(uint8 Progress)
 void UInteractionComponent::HandleInteract()
 {
 	bIsInteracting = false;
-	if (InteractableComp.IsValid() && InteractableComp->OnInteractEvent.IsAlreadyBound(this, & UInteractionComponent::HandleInteract))
+	if (InteractableComp != nullptr)
 	{
-		InteractableComp->OnInteractEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteract);
+		if (InteractableComp->OnInteractEvent.IsAlreadyBound(this, & UInteractionComponent::HandleInteract))
+		{
+			InteractableComp->OnInteractEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteract);
+		}
+		if (InteractableComp->OnUpdateInteractionProgressEvent.IsAlreadyBound(this, &UInteractionComponent::HandleInteractionProgress))
+		{
+			InteractableComp->OnUpdateInteractionProgressEvent.RemoveDynamic(this, &UInteractionComponent::HandleInteractionProgress);
+		}
 	}
 }
-
 
 void UInteractionComponent::Server_CancelInteraction_Implementation(UInteractableComponent* interactableComponent) const
 {

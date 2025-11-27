@@ -22,10 +22,12 @@ class HAUNTEDHOUSE_API UInteractableComponent : public UActorComponent
 	
 	FTimerHandle InteractionTimerHandle;
 
-	UPROPERTY(Replicated, ReplicatedUsing = OnRep_CurrentHoldTime)
-	float CurrentHoldTime;
+	// How long the interaction has been held for so far
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentHoldTime)
+	float CurrentHoldTime = 0.0f;
 
-	UPROPERTY(Replicated, ReplicatedUsing = OnRep_HasBeenTriggered)
+	// A flag that represents whether interaction is complete or not
+	UPROPERTY(ReplicatedUsing = OnRep_HasBeenTriggered)
 	bool bHasBeenTriggered = false;
 
 	// Whether this component is being interacted.
@@ -35,6 +37,7 @@ class HAUNTEDHOUSE_API UInteractableComponent : public UActorComponent
 
 	
 protected:
+	// Whether the host is the only player allowed to interact with the object or not
 	UPROPERTY(EditAnywhere)
 	bool bHostOnly = false;
 	// The amount of time the player must hold the interaction button to complete the interaction
@@ -43,7 +46,7 @@ protected:
 	// The tick rate in seconds for the interaction tick
 	UPROPERTY(EditAnywhere)
 	float InteractionDeltaTime = 0.03f;
-
+	// Can the object be interacted with multiple times
 	UPROPERTY(EditAnywhere)
 	bool bOnlyInteractOnce = false;
 	
@@ -72,8 +75,10 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
+	// Interaction tick event. Only runs on server. Updates the CurrentHoldTime
 	void InteractionTick();
+	// Triggered when the interaction is complete
 	void EndInteraction();
 
 	UFUNCTION()
@@ -91,12 +96,16 @@ public:
 	// Ask server if InteractionComponent can interact.
 	// Return true if it is able to interact
 	bool TryToInteract();
+	// Start timer event that calls "InteractionTick" function
 	void StartInteraction();
+	// Cancels "InteractionTick" event
 	void CancelInteraction();
 
+	// Returns whether the interactable can be interacted with
 	bool CanInteract() const;
 	bool GetIsHostOnly() const { return bHostOnly; }
 
+	/** Getter functions for owning actors **/
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool GetHasBeenTriggered() { return bHasBeenTriggered; }
 	UFUNCTION(BlueprintCallable, BlueprintPure)

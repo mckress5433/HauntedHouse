@@ -18,8 +18,15 @@ UInteractableComponent::UInteractableComponent()
 void UInteractableComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
+	
 	CancelInteraction();
+	
+	OnBeginHoverEvent.Clear();
+	OnEndHoverEvent.Clear();
+	OnInteractEvent.Clear();
+	OnUpdateInteractionProgressEvent.Clear();
+	OnInteractStartEvent.Clear();
+	OnInteractCanceledEvent.Clear();
 }
 
 void UInteractableComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -27,6 +34,7 @@ void UInteractableComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePr
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ThisClass, bHasBeenTriggered);
 	DOREPLIFETIME(ThisClass, bInteractionActive);
+	DOREPLIFETIME(ThisClass, CurrentHoldTime);
 }
 
 void UInteractableComponent::StartInteraction()
@@ -77,6 +85,7 @@ void UInteractableComponent::EndInteraction()
 	}
 
 	CurrentHoldTime = 0.0f;
+	OnRep_CurrentHoldTime();
 	bHasBeenTriggered = true;
 	OnRep_HasBeenTriggered();
 	bInteractionActive = false;
@@ -94,7 +103,7 @@ void UInteractableComponent::OnRep_CurrentHoldTime()
 {
 	if (OnUpdateInteractionProgressEvent.IsBound())
 	{
-		uint8 progress = static_cast<uint8>((CurrentHoldTime / HoldTime)*100);
+		const uint8 progress = static_cast<uint8>((CurrentHoldTime / HoldTime)*100);
 		if (GlobalFunctionLibrary::GetInteractionDebugValue() != 0)
 		{
 			GEngine->AddOnScreenDebugMessage(1, InteractionDeltaTime, FColor::Magenta, FString::Printf(TEXT("OnRep_CurrentHoldTime: %d"), progress));	

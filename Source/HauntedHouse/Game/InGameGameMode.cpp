@@ -2,7 +2,6 @@
 
 
 #include "InGameGameMode.h"
-
 #include "HauntedHouse/Player/PlayerState/InGamePlayerState.h"
 
 void AInGameGameMode::SetPlayerDefaults(APawn* PlayerPawn)
